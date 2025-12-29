@@ -92,7 +92,13 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       .slice(0, 10)
       .map((item) => {
         const { name, msdn, msnb, address, status } = item.entry;
-        return { name, taxCode: msdn || msnb, address, status };
+        // Ensure required string fields for type-safety when emitting worker bundle
+        return {
+          name,
+          taxCode: msdn || msnb || '',
+          address: address || '',
+          status: status || ''
+        };
       });
     if (matches.length > 0) {
       const result: CompanyCheckResult = {
