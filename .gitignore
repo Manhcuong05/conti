@@ -1,0 +1,24 @@
+
+# Bootstrap marker
+.bootstrap-complete
+
+# Dependencies
+node_modules/
+bun
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Cloudflare local state
+.wrangler/
+
+# Environment and logs
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
