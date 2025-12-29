@@ -3,66 +3,59 @@ import path from "path";
 
 const exists = (p) => {
   try {
-    return statSync(p).isFile() || statSync(p).isDirectory();
+    statSync(p);
+    return true;
   } catch {
     return false;
   }
 };
 
-const detectRoot = () => {
-  // Prefer dist/conti (vite plugin default)
-  if (exists("dist/conti")) return "dist/conti";
-  // Fallback to first dist/* with worker/user-routes.js
-  try {
-    const entries = readdirSync("dist", { withFileTypes: true });
-    for (const d of entries) {
-      if (!d.isDirectory()) continue;
-      const candidate = path.join("dist", d.name);
-      if (exists(path.join(candidate, "worker", "user-routes.js"))) return candidate;
-    }
-  } catch {}
-  // Fallback to first with wrangler.json
-  try {
-    const entries = readdirSync("dist", { withFileTypes: true });
-    for (const d of entries) {
-      if (!d.isDirectory()) continue;
-      const candidate = path.join("dist", d.name);
-      if (exists(path.join(candidate, "wrangler.json"))) return candidate;
-    }
-  } catch {}
-  return "dist/bizflow_b7855qf63nk7591rimhyr";
-};
-
-const ROOT = detectRoot();
-
-const patch = (relPath, replacements) => {
-  const p = path.join(ROOT, relPath);
-  let src = readFileSync(p, "utf8");
-  let next = src;
-  for (const [from, to] of replacements) {
-    next = next.replace(from, to);
+const distRoots = () => {
+  const roots = [];
+  if (!exists("dist")) return roots;
+  for (const entry of readdirSync("dist", { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    roots.push(path.join("dist", entry.name));
   }
-  if (src !== next) writeFileSync(p, next);
+  return roots;
 };
 
-patch("index.js", [[/\.\/user-routes"/g, "./user-routes.js\""]]);
+const patchFile = (absPath, replacements) => {
+  if (!exists(absPath)) return;
+  let src = readFileSync(absPath, "utf8");
+  let next = src;
+  for (const [from, to] of replacements) next = next.replace(from, to);
+  if (src !== next) writeFileSync(absPath, next);
+};
 
-patch("worker/user-routes.js", [
-  [/\.\/entities\b/g, "./entities.js"],
-  [/\.\/core-utils\b/g, "./core-utils.js"],
-  [/\.\/string-utils\b/g, "./string-utils.js"],
-  [/@shared\/mock-data\b/g, "../shared/mock-data.js"],
-  [/@shared\/company-registry\b/g, "../shared/company-registry.js"],
-]);
+const roots = distRoots();
+if (roots.length === 0) process.exit(0);
 
-patch("worker/entities.js", [
-  [/\.\/core-utils\b/g, "./core-utils.js"],
-  [/@shared\/mock-data\b/g, "../shared/mock-data.js"],
-]);
+for (const root of roots) {
+  // Fix dynamic import in index.js if present
+  patchFile(path.join(root, "index.js"), [[/\.\/user-routes"/g, "./user-routes.js\""]]);
 
-const dataSrc = "data/thuvienphapluat.json";
-const dataOutDir = path.join(ROOT, "data");
-mkdirSync(dataOutDir, { recursive: true });
-const dataOut = path.join(dataOutDir, "thuvienphapluat.js");
-writeFileSync(dataOut, `export default ${readFileSync(dataSrc, "utf8")};\n`);
-patch("shared/company-registry.js", [[/\.\.\/data\/thuvienphapluat\.json\b/g, "../data/thuvienphapluat.js"]]);
+  // Worker routes and entities
+  patchFile(path.join(root, "worker", "user-routes.js"), [
+    [/\.\/entities\b/g, "./entities.js"],
+    [/\.\/core-utils\b/g, "./core-utils.js"],
+    [/\.\/string-utils\b/g, "./string-utils.js"],
+    [/@shared\/mock-data\b/g, "../shared/mock-data.js"],
+    [/@shared\/company-registry\b/g, "../shared/company-registry.js"],
+  ]);
+
+  patchFile(path.join(root, "worker", "entities.js"), [
+    [/\.\/core-utils\b/g, "./core-utils.js"],
+    [/@shared\/mock-data\b/g, "../shared/mock-data.js"],
+  ]);
+
+  // Dataset -> JS module if shared/company-registry.js exists in this root
+  const companyRegistryPath = path.join(root, "shared", "company-registry.js");
+  if (exists(companyRegistryPath)) {
+    const dataOutDir = path.join(root, "data");
+    mkdirSync(dataOutDir, { recursive: true });
+    const dataOut = path.join(dataOutDir, "thuvienphapluat.js");
+    writeFileSync(dataOut, `export default ${readFileSync("data/thuvienphapluat.json", "utf8")};\n`);
+    patchFile(companyRegistryPath, [[/\.\.\/data\/thuvienphapluat\.json\b/g, "../data/thuvienphapluat.js"]]);
+  }
+}
