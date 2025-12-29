@@ -32,8 +32,24 @@ const roots = distRoots();
 if (roots.length === 0) process.exit(0);
 
 for (const root of roots) {
+  // If wrangler.json is missing here, copy from another dist root (CI may emit it elsewhere)
+  if (!exists(path.join(root, "wrangler.json"))) {
+    const fallback = roots
+      .map((r) => path.join(r, "wrangler.json"))
+      .find((p) => exists(p));
+    if (fallback) {
+      mkdirSync(root, { recursive: true });
+      writeFileSync(path.join(root, "wrangler.json"), readFileSync(fallback));
+    }
+  }
+
   // Fix dynamic import in index.js if present
   patchFile(path.join(root, "index.js"), [[/\.\/user-routes"/g, "./user-routes.js\""]]);
+  patchFile(path.join(root, "worker", "index.js"), [
+    [/\.\/user-routes`/g, "./user-routes.js`"],
+    [/\.\/user-routes"/g, "./user-routes.js\""],
+    [/\.\/user-routes'/g, "./user-routes.js'"],
+  ]);
 
   // Worker routes and entities
   patchFile(path.join(root, "worker", "user-routes.js"), [
