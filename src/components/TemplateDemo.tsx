@@ -11,7 +11,7 @@ import { api } from '@/lib/api-client'
 
 export const HAS_TEMPLATE_DEMO = true
 
-const glassCard = 'backdrop-blur-xl bg-white/10 dark:bg-black/20 border-white/20 shadow-2xl'
+const glassCard = 'backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl'
 
 export function TemplateDemo() {
   const [users, setUsers] = useState<User[]>([])
@@ -110,7 +110,7 @@ export function TemplateDemo() {
                   key={u.id}
                   type="button"
                   onClick={() => setSelectedUserId(u.id)}
-                  className={`w-full text-left flex items-center justify-between border rounded px-3 py-2 transition-colors ${selectedUserId === u.id ? 'bg-white/10 dark:bg-white/5' : 'hover:bg-white/5 dark:hover:bg-white/5'}`}
+                  className={`w-full text-left flex items-center justify-between border rounded px-3 py-2 transition-colors ${selectedUserId === u.id ? 'bg-white/10' : 'hover:bg-white/5'}`}
                 >
                   <span className="font-medium">{u.name}</span>
                   <span className="text-xs text-muted-foreground">{u.id.slice(0, 6)}…</span>
@@ -135,7 +135,7 @@ export function TemplateDemo() {
                   key={c.id}
                   type="button"
                   onClick={() => setSelectedChatId(c.id)}
-                  className={`w-full text-left flex items-center justify-between border rounded px-3 py-2 transition-colors ${selectedChatId === c.id ? 'bg-white/10 dark:bg-white/5' : 'hover:bg-white/5 dark:hover:bg-white/5'}`}
+                  className={`w-full text-left flex items-center justify-between border rounded px-3 py-2 transition-colors ${selectedChatId === c.id ? 'bg-white/10' : 'hover:bg-white/5'}`}
                 >
                   <span className="font-medium">{c.title}</span>
                   <span className="text-xs text-muted-foreground">{c.id.slice(0, 6)}…</span>
@@ -181,7 +181,7 @@ export function TemplateDemo() {
             </Select>
           </div>
 
-          <div className="flex-1 rounded-lg border bg-white/5 dark:bg-white/5 p-3 overflow-y-auto">
+          <div className="flex-1 rounded-lg border bg-white/5 p-3 overflow-y-auto">
             {loadingMessages ? (
               <div className="text-sm text-muted-foreground">Loading messages…</div>
             ) : messages.length ? (

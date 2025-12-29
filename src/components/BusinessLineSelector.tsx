@@ -89,12 +89,12 @@ export function BusinessLineSelector({
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           />
           {isFocused && filteredResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-100 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
               <div className="max-h-80 overflow-y-auto">
                 {filteredResults.map(item => (
                   <div
                     key={item.code}
-                    className="p-4 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex items-center justify-between transition-colors border-b border-slate-50 dark:border-slate-800 last:border-none group"
+                    className="p-4 hover:bg-blue-50 cursor-pointer flex items-center justify-between transition-colors border-b border-slate-50 last:border-none group"
                     onMouseDown={() => addLine(item)}
                   >
                     <div className="space-y-1 flex-1 pr-4">
@@ -106,7 +106,7 @@ export function BusinessLineSelector({
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-snug group-hover:text-blue-700 transition-colors">
+                      <p className="text-sm font-bold text-slate-700 leading-snug group-hover:text-blue-700 transition-colors">
                         {item.name}
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -143,7 +143,7 @@ export function BusinessLineSelector({
                   "p-5 rounded-2xl border-2 flex items-center justify-between transition-all group animate-in slide-in-from-right-2",
                   primaryCode === line.code
                     ? "border-blue-600 bg-blue-50/50 shadow-md ring-1 ring-blue-500/20"
-                    : "border-slate-100 bg-white dark:bg-slate-900 hover:border-slate-200"
+                    : "border-slate-100 bg-white hover:border-slate-200"
                 )}
               >
                 <div className="flex items-center gap-4 flex-grow">
@@ -169,7 +169,7 @@ export function BusinessLineSelector({
                         <Badge variant="outline" className="text-[9px] text-amber-600 border-amber-200 h-5">Điều kiện</Badge>
                       )}
                     </div>
-                    <p className="text-base font-bold text-slate-700 dark:text-slate-100 leading-tight">{line.name}</p>
+                    <p className="text-base font-bold text-slate-700 leading-tight">{line.name}</p>
                   </div>
                 </div>
                 <Button

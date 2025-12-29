@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-blue-50/50 to-background dark:from-blue-950/20 dark:to-background">
+    <section className="relative overflow-hidden bg-gradient-to-b from-blue-50/50 to-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="py-20 md:py-32 lg:py-40 flex flex-col items-center text-center">
           <motion.div

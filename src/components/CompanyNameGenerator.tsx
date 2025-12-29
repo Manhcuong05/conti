@@ -46,11 +46,11 @@ function NameCard({ name, onSelect }: NameCardProps) {
   return (
     <motion.div
       whileHover={{ y: -4, scale: 1.02 }}
-      className="group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer"
+      className="group relative bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer"
       onClick={() => onSelect?.(name)}
     >
       <div className="flex flex-col gap-3">
-        <h3 className="font-bold text-brand-navy dark:text-blue-400 text-lg leading-tight group-hover:text-blue-600 transition-colors">
+        <h3 className="font-bold text-brand-navy text-lg leading-tight group-hover:text-blue-600 transition-colors">
           {name}
         </h3>
         <div className="flex items-center gap-2">

@@ -82,7 +82,7 @@ export function Footer() {
         </div>
         <div className="mt-8 border-t pt-8 text-center text-muted-foreground text-sm">
           <p>&copy; {new Date().getFullYear()} CONTI. All rights reserved.</p>
-          <p className="mt-1">Built with ❤️ at Cloudflare</p>
+          <p className="mt-1">Built with ❤️ at AdFlex</p>
         </div>
       </div>
     </footer>
