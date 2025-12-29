@@ -33,7 +33,9 @@ if (roots.length === 0) process.exit(0);
 
 for (const root of roots) {
   // Fix dynamic import in index.js if present
+  // Patch dynamic import paths to include .js (root index.js and worker/index.js)
   patchFile(path.join(root, "index.js"), [[/\.\/user-routes"/g, "./user-routes.js\""]]);
+  patchFile(path.join(root, "worker", "index.js"), [[/\.\/user-routes`/g, "./user-routes.js`"], [/\.\/user-routes"/g, "./user-routes.js\""], [/\.\/user-routes'/g, "./user-routes.js'"]]);
 
   // Worker routes and entities
   patchFile(path.join(root, "worker", "user-routes.js"), [
