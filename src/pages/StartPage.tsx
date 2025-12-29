@@ -117,6 +117,7 @@ export default function StartPage() {
   const [isEditingNames, setIsEditingNames] = useState(false);
   const [customFullName, setCustomFullName] = useState("");
   const [customFullNameEn, setCustomFullNameEn] = useState("");
+  const [registryCloseSignal, setRegistryCloseSignal] = useState<number>(0);
   const VN_PHONE_REGEX = /^0[1-9]\d{8,9}$/;
   const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const isStep6Valid = contactName.trim().length > 0 && VN_PHONE_REGEX.test(phone) && EMAIL_REGEX.test(email);
@@ -159,6 +160,7 @@ export default function StartPage() {
         body: JSON.stringify({ companyName }) 
       });
       setCheckResult(data);
+      setRegistryCloseSignal(Date.now());
       if (data.status === 'available') toast.success("Tên khả dụng!");
       if (data.status === 'duplicate') toast.error(data.message || "Tên đã tồn tại, vui lòng chọn tên khác.");
     } catch (error) {
@@ -277,7 +279,9 @@ export default function StartPage() {
                         onSelect={(entry) => {
                           setCompanyName(entry.name.toUpperCase());
                           setCheckResult(null);
+                          setRegistryCloseSignal(Date.now());
                         }}
+                        closeSignal={registryCloseSignal}
                       />
                     </div>
                     {checkResult?.status === 'available' && (

@@ -6,16 +6,20 @@ import type { CompanyRegistryEntry } from "@shared/types";
 interface CompanyRegistrySearchProps {
   query: string;
   onSelect: (entry: CompanyRegistryEntry) => void;
+  /** External signal to force close the dropdown (e.g. after pressing "Kiểm tra"). */
+  closeSignal?: number;
 }
 
 const MIN_QUERY_LENGTH = 2;
 
-export function CompanyRegistrySearch({ query, onSelect }: CompanyRegistrySearchProps) {
+export function CompanyRegistrySearch({ query, onSelect, closeSignal }: CompanyRegistrySearchProps) {
   const [results, setResults] = useState<CompanyRegistryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const skipNextFetch = useRef(false);
+  const lastQuery = useRef(query);
+  const closeTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -55,6 +59,27 @@ export function CompanyRegistrySearch({ query, onSelect }: CompanyRegistrySearch
       clearTimeout(timeout);
       controller.abort();
     };
+  }, [query]);
+
+  // Force close when external signal toggles (e.g. user pressed "Kiểm tra")
+  useEffect(() => {
+    if (!closeSignal) return;
+    if (closeTimeout.current) clearTimeout(closeTimeout.current);
+    closeTimeout.current = setTimeout(() => {
+      setOpen(false);
+      setResults([]);
+      setLoading(false);
+      setError(null);
+      skipNextFetch.current = true;
+    }, 50);
+  }, [closeSignal]);
+
+  // Close suggestions when query changes meaningfully after a selection
+  useEffect(() => {
+    if (lastQuery.current !== query) {
+      lastQuery.current = query;
+      // If user typed a new query after selection, allow fetch to reopen; otherwise keep behavior.
+    }
   }, [query]);
 
   if (!open && !loading) return null;
