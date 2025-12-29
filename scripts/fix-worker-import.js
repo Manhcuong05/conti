@@ -1,21 +1,34 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from "fs";
 import path from "path";
 
-const detectRoot = () => {
-  const dist = "dist";
+const exists = (p) => {
   try {
-    const entries = readdirSync(dist, { withFileTypes: true });
-    const candidates = entries
-      .filter((d) => d.isDirectory())
-      .map((d) => path.join(dist, d.name))
-      .filter((p) => {
-        try {
-          return statSync(path.join(p, "wrangler.json")).isFile();
-        } catch {
-          return false;
-        }
-      });
-    if (candidates.length > 0) return candidates[0];
+    return statSync(p).isFile() || statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+};
+
+const detectRoot = () => {
+  // Prefer dist/conti (vite plugin default)
+  if (exists("dist/conti")) return "dist/conti";
+  // Fallback to first dist/* with worker/user-routes.js
+  try {
+    const entries = readdirSync("dist", { withFileTypes: true });
+    for (const d of entries) {
+      if (!d.isDirectory()) continue;
+      const candidate = path.join("dist", d.name);
+      if (exists(path.join(candidate, "worker", "user-routes.js"))) return candidate;
+    }
+  } catch {}
+  // Fallback to first with wrangler.json
+  try {
+    const entries = readdirSync("dist", { withFileTypes: true });
+    for (const d of entries) {
+      if (!d.isDirectory()) continue;
+      const candidate = path.join("dist", d.name);
+      if (exists(path.join(candidate, "wrangler.json"))) return candidate;
+    }
   } catch {}
   return "dist/bizflow_b7855qf63nk7591rimhyr";
 };
