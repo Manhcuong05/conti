@@ -1,8 +1,4 @@
-/**
- * Core utilities for Multiple Entities sharing a single Durable Object class
- * DO NOT MODIFY THIS FILE - You may break the project functionality. STRICTLY DO NOT TOUCH
- * Look at the \`worker/entities.ts\` file for examples on how to use this library
- */
+
 import type { ApiResponse } from "@shared/types";
 import { DurableObject } from "cloudflare:workers"; // DO NOT MODIFY THIS LINE. This is always already installed and available
 import type { Context } from "hono";
@@ -13,15 +9,11 @@ export interface Env {
 
 type Doc<T> = { v: number; data: T };
 
-/**
- * Global Durable object for storage-purpose ONLY, to be used as a KV-like storage by multiple entities
- */
 export class GlobalDurableObject extends DurableObject<Env, unknown> {
   constructor(public ctx: DurableObjectState, public env: Env) {
     super(ctx, env);
   }
 
-  /** Delete a key; returns true if it existed. */
   async del(key: string): Promise<boolean> {
     const existed = (await this.ctx.storage.get(key)) !== undefined;
     await this.ctx.storage.delete(key);
