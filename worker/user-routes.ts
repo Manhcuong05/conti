@@ -92,7 +92,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       .slice(0, 10)
       .map((item) => {
         const { name, msdn, msnb, address, status } = item.entry;
-        // Ensure required string fields for type-safety when emitting worker bundle
         return {
           name,
           taxCode: msdn || msnb || '',

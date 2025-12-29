@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port ${PORT:-3000}",
-    "build": "vite build && bun run build:worker",
+    "build": "vite build && npm run build:worker && npm run fix:worker-import",
     "lint": "eslint --cache -f json --quiet .",
     "preview": "bun run build && vite preview --host 0.0.0.0 --port ${PORT:-4173}",
     "deploy": "bun run build && wrangler deploy",
     "cf-typegen": "wrangler types",
     "prepare": "bun .bootstrap.js || true",
-    "build:worker": "tsc --project tsconfig.worker.json --noEmit false --outDir dist/bizflow_b7855qf63nk7591rimhyr"
+    "build:worker": "tsc --project tsconfig.worker.json --noEmit false --outDir dist/bizflow_b7855qf63nk7591rimhyr && printf \"export { userRoutes } from './worker/user-routes.js';\\n\" > dist/bizflow_b7855qf63nk7591rimhyr/user-routes.js",
+    "fix:worker-import": "node scripts/fix-worker-import.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
