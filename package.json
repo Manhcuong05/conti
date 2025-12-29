@@ -11,7 +11,7 @@
     "deploy": "bun run build && wrangler deploy",
     "cf-typegen": "wrangler types",
     "prepare": "bun .bootstrap.js || true",
-    "build:worker": "tsc --project tsconfig.worker.json --noEmit false --outDir dist/conti && printf \"export { userRoutes } from './worker/user-routes.js';\\n\" > dist/conti/user-routes.js",
+    "build:worker": "tsc --project tsconfig.worker.json --noEmit false --outDir dist/bizflow_b7855qf63nk7591rimhyr && printf \"export { userRoutes } from './worker/user-routes.js';\\n\" > dist/bizflow_b7855qf63nk7591rimhyr/user-routes.js",
     "fix:worker-import": "node scripts/fix-worker-import.js"
   },
 
