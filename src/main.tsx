@@ -17,6 +17,7 @@ import ResourcesPage from '@/pages/ResourcesPage';
 import AboutPage from '@/pages/AboutPage';
 import ClientPortalPage from '@/pages/ClientPortal';
 import StartPage from '@/pages/StartPage';
+import ResourceDetailPage from '@/pages/ResourceDetailPage';
 const queryClient = new QueryClient();
 const router = createBrowserRouter([
   {
@@ -37,6 +38,11 @@ const router = createBrowserRouter([
   {
     path: "/resources",
     element: <ResourcesPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/resources/:slug",
+    element: <ResourceDetailPage />,
     errorElement: <RouteErrorBoundary />,
   },
   {

@@ -15,7 +15,7 @@ export type Resource = {
   content?: { heading: string; body: string }[];
 };
 
-export const resources: Resource[] = [
+export const baseResources: Resource[] = [
   {
     slug: "huong-dan-thu-tuc-thanh-lap-tnhh",
     title: "Hướng dẫn chi tiết thủ tục thành lập công ty TNHH",
@@ -155,8 +155,38 @@ export const resources: Resource[] = [
   },
 ];
 
-export const resourceCategories = ["Tất cả", ...Array.from(new Set(resources.map((r) => r.category)))];
+const STORAGE_KEY = "conti_resources";
+
+export function loadResources(): Resource[] {
+  if (typeof window === "undefined") return baseResources;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return baseResources;
+    const parsed = JSON.parse(raw) as Resource[];
+    // Ensure required fields exist; fallback to base if malformed.
+    if (!Array.isArray(parsed)) return baseResources;
+    return parsed.map((item) => ({
+      ...item,
+      tags: item.tags ?? [],
+    }));
+  } catch {
+    return baseResources;
+  }
+}
+
+export function saveResources(list: Resource[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  } catch {
+    // Ignore write errors (storage blocked/quota)
+  }
+}
 
 export function getResourceBySlug(slug: string) {
-  return resources.find((r) => r.slug === slug);
+  return loadResources().find((r) => r.slug === slug);
+}
+
+export function getResourceCategories(data: Resource[]) {
+  return ["Tất cả", ...Array.from(new Set(data.map((r) => r.category)))];
 }
