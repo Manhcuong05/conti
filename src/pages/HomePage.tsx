@@ -43,20 +43,6 @@ const homeServices: ServiceCardProps[] = [
     ctaText: "Chỉ từ 800.000/tháng",
     ctaLink: "/pricing",
   },
-  {
-    icon: <ShieldCheck className="h-6 w-6 text-blue-600" />,
-    title: "Dịch vụ tuân thủ pháp luật",
-    description: "Thay đổi giấy phép, bổ nhiệm giám đốc, soạn thảo biên bản họp, lưu trữ hồ sơ pháp lý.",
-    ctaText: "Tìm hiểu thêm",
-    ctaLink: "/pricing",
-  },
-  {
-    icon: <Zap className="h-6 w-6 text-blue-600" />,
-    title: "Dịch vụ số hóa kinh doanh",
-    description: "Cung cấp các công cụ số hóa nhằm thu hút nhiều khách hàng trên không gian số.",
-    ctaText: "Tìm hiểu thêm",
-    ctaLink: "/pricing",
-  },
 ];
 const clientLogos = ['adflex.vn', 'kalapa.vn', 'masoffer.com', 'eway.vn'];
 export function HomePage() {

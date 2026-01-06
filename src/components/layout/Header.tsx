@@ -62,10 +62,10 @@ export function Header() {
           </nav>
           <div className="hidden md:flex items-center gap-4">
             <Button variant="ghost" asChild className="font-bold hover:bg-blue-50 hover:text-blue-600">
-              <Link to="/portal">Đăng nhập</Link>
+              <Link to="/portal">Tra cứu hồ sơ</Link>
             </Button>
             <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/10">
-              <Link to="/start">Tư vấn miễn phí</Link>
+              <Link to="/lien-he">Tư vấn miễn phí</Link>
             </Button>
           </div>
           <div className="md:hidden flex items-center gap-2">
@@ -79,7 +79,7 @@ export function Header() {
                 <div className="flex flex-col h-full">
                   <div className="p-8 pb-4">
                     <Link to="/" onClick={closeMobileMenu} className="flex items-center gap-2 mb-10">
-                       <div className="bg-blue-500 p-2 rounded-lg text-white">
+                      <div className="bg-blue-500 p-2 rounded-lg text-white">
                         <BriefcaseBusiness className="h-6 w-6" />
                       </div>
                       <span className="text-2xl font-display font-black text-blue-900">CONTI</span>
@@ -104,10 +104,10 @@ export function Header() {
                   </div>
                   <div className="mt-auto p-8 pt-4 space-y-4 bg-white border-t border-slate-100">
                     <Button variant="outline" className="w-full h-14 font-bold border-slate-200 rounded-2xl" asChild>
-                        <Link to="/portal" onClick={closeMobileMenu}>Đăng nhập</Link>
+                      <Link to="/portal" onClick={closeMobileMenu}>Tra cứu hồ sơ</Link>
                     </Button>
                     <Button asChild className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/10">
-                      <Link to="/start" onClick={closeMobileMenu}>Tư vấn miễn phí</Link>
+                      <Link to="/lien-he" onClick={closeMobileMenu}>Tư vấn miễn phí</Link>
                     </Button>
                   </div>
                 </div>

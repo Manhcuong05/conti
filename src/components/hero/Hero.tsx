@@ -30,9 +30,9 @@ export function Hero() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto"
           >
-            <Button 
+            <Button
               asChild
-              size="lg" 
+              size="lg"
               className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-8 h-14 text-lg rounded-full shadow-lg shadow-blue-500/20 transition-all hover:scale-105 active:scale-95"
             >
               <Link to="/start">
@@ -43,10 +43,13 @@ export function Hero() {
             <Button
               variant="outline"
               size="lg"
+              asChild
               className="w-full sm:w-auto border-blue-500 text-blue-600 hover:bg-blue-50 px-8 h-14 text-lg rounded-full transition-all hover:scale-105 active:scale-95"
             >
-              <PhoneCall className="mr-2 h-5 w-5" />
-              Liên hệ tư vấn
+              <Link to="/lien-he">
+                <PhoneCall className="mr-2 h-5 w-5" />
+                Liên hệ tư vấn
+              </Link>
             </Button>
           </motion.div>
           <motion.p

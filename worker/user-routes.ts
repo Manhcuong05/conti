@@ -21,12 +21,12 @@ function deriveName(entry: CompanyRegistryEntry): string | null {
 
 const PREPARED_REGISTRY: { entry: CompanyRegistryEntry; normalizedName: string }[] = Array.isArray(COMPANY_REGISTRY)
   ? COMPANY_REGISTRY
-      .map((entry) => {
-        const derivedName = deriveName(entry);
-        if (!derivedName) return null;
-        return { entry: { ...entry, name: derivedName }, normalizedName: normalizeBusinessName(derivedName) };
-      })
-      .filter((e): e is { entry: CompanyRegistryEntry; normalizedName: string } => !!e && e.normalizedName.length > 0)
+    .map((entry) => {
+      const derivedName = deriveName(entry);
+      if (!derivedName) return null;
+      return { entry: { ...entry, name: derivedName }, normalizedName: normalizeBusinessName(derivedName) };
+    })
+    .filter((e): e is { entry: CompanyRegistryEntry; normalizedName: string } => !!e && e.normalizedName.length > 0)
   : [];
 const MOCK_REGISTRY = [
   { name: "CÔNG TY TNHH CONTI", taxCode: "0101234567", address: "Tòa nhà Lotte Center, 54 Liễu Giai, Ba Đình, Thành phố Hà Nội", status: "Đang hoạt động" },
@@ -37,7 +37,7 @@ const MOCK_REGISTRY = [
   { name: "CÔNG TY TNHH ĐẤT XANH", taxCode: "0303030303", address: "2W Ung Văn Khiêm, P. 25, Q. Bình Thạnh, Thành phố Hồ Chí Minh", status: "Đang hoạt động" }
 ];
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
-  app.get('/api/test', (c) => c.json({ success: true, data: { name: 'CONTI Workers API' }}));
+  app.get('/api/test', (c) => c.json({ success: true, data: { name: 'CONTI Workers API' } }));
   // USERS
   app.get('/api/users', async (c) => {
     await UserEntity.ensureSeed(c.env);
@@ -126,12 +126,29 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     try {
       const data = (await c.req.json()) as OnboardingData;
       // Mandatory validation including new businessSectors field
-      if (!data.companyName || !data.contactName || !data.email || !data.province || !data.addressDetail || !data.phone) {
-      return bad(c, 'Vui lòng cung cấp đầy đủ thông tin bắt buộc bao gồm địa chỉ trụ sở và thông tin đăng ký');
-    }
-      if (!data.businessLines || data.businessLines.length === 0 || !data.primaryLineCode) {
-        return bad(c, 'Vui lòng chọn các ngành nghề VSIC và xác định ngành chính');
+      // Validate required fields for new registration structure
+      if (!data.companyNameVi || !data.companyNameEn || !data.address || !data.phone || !data.email) {
+        return bad(c, 'Vui lòng cung cấp đầy đủ thông tin công ty và liên hệ');
       }
+      if (!data.businessLines || !data.vatMethod) {
+        return bad(c, 'Vui lòng cung cấp thông tin ngành nghề và phương pháp tính thuế');
+      }
+      if (!data.charterCapital || !data.capitalCompletionDate) {
+        return bad(c, 'Vui lòng cung cấp thông tin vốn điều lệ');
+      }
+      if (!data.legalRepresentative || !data.legalRepresentative.name) {
+        return bad(c, 'Vui lòng cung cấp thông tin người đại diện pháp luật');
+      }
+      if (!data.founders || data.founders.length === 0) {
+        return bad(c, 'Vui lòng cung cấp thông tin sáng lập viên/cổ đông');
+      }
+
+      // Validate founders ownership
+      const totalOwnership = data.founders.reduce((sum, f) => sum + (f.ownershipPercentage || 0), 0);
+      if (Math.abs(totalOwnership - 100) > 0.1) {
+        return bad(c, `Tổng tỷ lệ sở hữu phải bằng 100% (hiện tại: ${totalOwnership.toFixed(2)}%)`);
+      }
+
       const referenceNumber = `CONTI-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
       const application: Application = {
         ...data,
@@ -151,6 +168,137 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       return bad(c, 'Lỗi hệ thống khi xử lý hồ sơ. Vui lòng thử lại sau.');
     }
   });
+
+  // Telegram notification endpoint
+  app.post('/api/telegram/notify', async (c) => {
+    try {
+      const { type, email, name, phone, message } = (await c.req.json()) as {
+        type: 'consultation' | 'contact';
+        email?: string;
+        name?: string;
+        phone?: string;
+        message?: string;
+      };
+
+      // Mock Telegram Bot integration
+      // In production, this would send to actual Telegram Bot API
+      // Example: https://api.telegram.org/bot<BOT_TOKEN>/sendMessage
+
+      let telegramMessage = '';
+      if (type === 'consultation') {
+        telegramMessage = `🔔 New Consultation Request:\nEmail: ${email || 'N/A'}`;
+      } else if (type === 'contact') {
+        telegramMessage = `📩 New Contact Form Submission:\nName: ${name || 'N/A'}\nEmail: ${email || 'N/A'}\nPhone: ${phone || 'N/A'}\nMessage: ${message || 'N/A'}`;
+      }
+
+      // Log to console (in production, replace with actual Telegram API call)
+      console.log('[TELEGRAM NOTIFICATION]', telegramMessage);
+
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      return ok(c, { message: 'Notification sent successfully', telegramMessage });
+    } catch (e) {
+      console.error('[TELEGRAM ERROR]', e);
+      return bad(c, 'Failed to send notification');
+    }
+  });
+
+  // Translation endpoint (LLM integration - mock)
+  app.post('/api/translate', async (c) => {
+    try {
+      const { text, sourceLang, targetLang } = (await c.req.json()) as {
+        text: string;
+        sourceLang: string;
+        targetLang: string;
+      };
+
+      // Mock translation - in production, integrate with LLM or translation API
+      // Example: OpenAI, Google Translate, or custom LLM
+      let translatedText = text.toUpperCase();
+
+      if (targetLang === 'en' && sourceLang === 'vi') {
+        // Simple mock: convert Vietnamese to English format
+        translatedText = text
+          .toUpperCase()
+          .replace(/CÔNG TY /g, '')
+          .replace(/TNHH /g, '')
+          .trim() + ' COMPANY LIMITED';
+      }
+
+      console.log('[TRANSLATION]', { text, sourceLang, targetLang, translatedText });
+
+      return ok(c, {
+        translatedText,
+        sourceLang,
+        targetLang
+      });
+    } catch (e) {
+      console.error('[TRANSLATION ERROR]', e);
+      return bad(c, 'Translation service error');
+    }
+  });
+
+  // VNPay create payment URL (mock)
+  app.post('/api/payment/vnpay/create', async (c) => {
+    try {
+      const { amount, orderInfo, referenceNumber } = (await c.req.json()) as {
+        amount: number;
+        orderInfo: string;
+        referenceNumber: string;
+      };
+
+      // Mock VNPay integration
+      // In production, this would:
+      // 1. Generate proper VNPay parameters with signature
+      // 2. Use TMN Code and Hash Secret from environment
+      // 3. Return actual VNPay payment URL
+
+      const mockPaymentUrl = `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=${amount * 100}&vnp_Command=pay&vnp_TxnRef=${referenceNumber}&vnp_OrderInfo=${encodeURIComponent(orderInfo)}`;
+
+      console.log('[VNPAY CREATE]', { amount, orderInfo, referenceNumber });
+
+      return ok(c, {
+        paymentUrl: mockPaymentUrl,
+        referenceNumber
+      });
+    } catch (e) {
+      console.error('[VNPAY CREATE ERROR]', e);
+      return bad(c, 'Payment service error');
+    }
+  });
+
+  // VNPay IPN callback handler (mock)
+  app.get('/api/payment/vnpay/callback', async (c) => {
+    try {
+      const params = c.req.query();
+
+      // Mock VNPay callback handling
+      // In production, this would:
+      // 1. Validate signature using Hash Secret
+      // 2. Update order/application status in database
+      // 3. Send confirmation to user
+      // 4. Return proper response to VNPay
+
+      console.log('[VNPAY CALLBACK]', params);
+
+      const responseCode = params.vnp_ResponseCode || '00';
+      const txnRef = params.vnp_TxnRef || '';
+
+      if (responseCode === '00') {
+        // Payment successful
+        return c.redirect(`/portal?payment=success&ref=${txnRef}`);
+      } else {
+        // Payment failed
+        return c.redirect(`/portal?payment=failed&code=${responseCode}`);
+      }
+    } catch (e) {
+      console.error('[VNPAY CALLBACK ERROR]', e);
+      return c.redirect('/portal?payment=error');
+    }
+  });
+
+
   app.post('/api/lead', async (c) => ok(c, { message: 'Lead đã được tiếp nhận thành công' }));
   app.post('/api/subscribe', async (c) => ok(c, { message: 'Đăng ký nhận tin thành công' }));
 }

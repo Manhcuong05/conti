@@ -38,24 +38,81 @@ export interface CompanyRegistryEntry {
   industries?: string[];
 }
 export type LegalForm = 'tnhh1' | 'tnhh2' | 'co-phan';
+export type VATMethod = 'khau-tru' | 'truc-tiep-gtgt' | 'truc-tiep-doanh-so' | 'khong-nop';
+export type AssetContribution = 'cash' | 'bank-transfer';
+
+export interface Founder {
+  id: string;
+  name: string;
+  idNumber: string;
+  permanentAddress: string;
+  contactAddress: string;
+  capitalContribution: number;
+  ownershipPercentage: number;
+}
+
+export interface LegalRepresentative {
+  uploadedVNeID: boolean;
+  name: string;
+  title: string;
+  dob: string;
+  ethnicity?: string;
+  idNumber: string;
+  idIssueDate: string;
+  idIssuePlace: string;
+  permanentAddress: string;
+  contactAddress: string;
+}
+
+export interface ChiefAccountant {
+  name: string;
+  dob: string;
+  idNumber: string;
+  idIssueDate: string;
+  idIssuePlace: string;
+  address: string;
+}
+
 export interface OnboardingData {
-  businessType: 'new' | 'existing';
-  companyName: string;
-  fullName?: string;
-  fullNameEn?: string;
-  legalForm: LegalForm;
-  province?: string;
-  addressDetail?: string;
-  contactName: string;
+  // Step 1: Business Type
+  businessType: LegalForm;
+
+  // Step 2: Company Naming
+  companyNameVi: string;
+  companyNameEn: string;
+  abbreviation?: string;
+
+  // Step 3: Contact & Headquarters
+  address: string;
   phone: string;
   email: string;
+  website?: string;
+  fax?: string;
+
+  // Step 4: Business Details
+  businessLines: string; // Free text description
+  vatMethod: VATMethod;
+
+  // Step 5: Capital & Personnel
+  charterCapital: number;
+  assetContribution: AssetContribution;
+  capitalCompletionDate: string;
+  legalRepresentative: LegalRepresentative;
+  hasChiefAccountant: boolean;
+  chiefAccountant?: ChiefAccountant;
+
+  // Step 6: Founders
+  founders: Founder[];
+
+  // Step 7: Package Selection
   selectedPackageId: string;
-  businessLines: VSICLine[];
-  primaryLineCode: string;
+
+  // Legacy/Optional fields
   confirmedConditions?: boolean;
   hasLandCertificate?: boolean;
   landCertificateFileName?: string;
 }
+
 export type ApplicationStatus = 'pending' | 'processing' | 'approved' | 'rejected';
 export interface Application extends OnboardingData {
   id: string; // This will be the referenceNumber
@@ -66,4 +123,56 @@ export interface OnboardingResponse {
   referenceNumber: string;
   message: string;
   application?: Application;
+}
+
+// Telegram notification types
+export interface TelegramNotificationRequest {
+  type: 'consultation' | 'contact';
+  email?: string;
+  name?: string;
+  phone?: string;
+  message?: string;
+}
+
+export interface TelegramNotificationResponse {
+  message: string;
+  telegramMessage?: string;
+}
+
+// Translation request types
+export interface TranslationRequest {
+  text: string;
+  sourceLang: string;
+  targetLang: string;
+}
+
+export interface TranslationResponse {
+  translatedText: string;
+  sourceLang: string;
+  targetLang: string;
+}
+
+// VNPay payment types
+export interface VNPayCreatePaymentRequest {
+  amount: number;
+  orderInfo: string;
+  referenceNumber: string;
+}
+
+export interface VNPayCreatePaymentResponse {
+  paymentUrl: string;
+  referenceNumber: string;
+}
+
+export interface VNPayCallbackData {
+  vnp_Amount: string;
+  vnp_BankCode: string;
+  vnp_CardType: string;
+  vnp_OrderInfo: string;
+  vnp_PayDate: string;
+  vnp_ResponseCode: string;
+  vnp_TmnCode: string;
+  vnp_TransactionNo: string;
+  vnp_TxnRef: string;
+  vnp_SecureHash: string;
 }

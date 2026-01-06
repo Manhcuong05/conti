@@ -13,8 +13,8 @@ export function Footer() {
     if (!email) return;
     setIsLoading(true);
     try {
-      await api("/api/subscribe", { method: "POST", body: JSON.stringify({ email }) });
-      toast.success("Cảm ơn bạn đã đăng ký nhận tin!");
+      await api("/api/telegram/notify", { method: "POST", body: JSON.stringify({ type: "consultation", email }) });
+      toast.success("Cảm ơn bạn! Chúng tôi sẽ liên hệ sớm.");
       setEmail("");
     } catch (error) {
       toast.error("Đăng ký không thành công. Vui lòng thử lại.");
@@ -34,18 +34,12 @@ export function Footer() {
             <p className="mt-4 text-muted-foreground">
               CONTI - Giải pháp lập và vận hành doanh nghiệp tối ưu cho SME và Startup.
             </p>
-            <div className="mt-6 flex space-x-4">
-              <a href="#" className="text-muted-foreground hover:text-blue-500"><Twitter /></a>
-              <a href="#" className="text-muted-foreground hover:text-blue-500"><Github /></a>
-              <a href="#" className="text-muted-foreground hover:text-blue-500"><Linkedin /></a>
-            </div>
           </div>
           <div className="md:col-span-2">
             <h3 className="font-semibold text-foreground">Dịch vụ</h3>
             <ul className="mt-4 space-y-2">
               <li><Link to="/pricing" className="text-muted-foreground hover:text-blue-600">Thành lập doanh nghiệp</Link></li>
               <li><Link to="/pricing" className="text-muted-foreground hover:text-blue-600">Kế toán & Thuế</Link></li>
-              <li><Link to="/pricing" className="text-muted-foreground hover:text-blue-600">Tuân thủ</Link></li>
             </ul>
           </div>
           <div className="md:col-span-2">
@@ -64,8 +58,8 @@ export function Footer() {
             </div>
           </div>
           <div className="md:col-span-3">
-            <h3 className="font-semibold text-foreground">Đăng ký nhận tin</h3>
-            <p className="mt-4 text-muted-foreground">Nhận các cập nhật và hướng dẫn pháp lý mới nhất.</p>
+            <h3 className="font-semibold text-foreground">Đăng ký nhận tư vấn</h3>
+            <p className="mt-4 text-muted-foreground">Để lại email, chúng tôi sẽ liên hệ tư vấn miễn phí.</p>
             <form onSubmit={handleSubscribe} className="mt-4 flex gap-2">
               <Input
                 type="email"

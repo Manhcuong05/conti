@@ -18,6 +18,7 @@ import AboutPage from '@/pages/AboutPage';
 import ClientPortalPage from '@/pages/ClientPortal';
 import StartPage from '@/pages/StartPage';
 import ResourceDetailPage from '@/pages/ResourceDetailPage';
+import ContactPage from '@/pages/ContactPage';
 const queryClient = new QueryClient();
 const router = createBrowserRouter([
   {
@@ -28,6 +29,11 @@ const router = createBrowserRouter([
   {
     path: "/start",
     element: <StartPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/lien-he",
+    element: <ContactPage />,
     errorElement: <RouteErrorBoundary />,
   },
   {
