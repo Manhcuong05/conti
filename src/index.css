@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {
+  :root {
+    /* Core Colors - BizStart Palette */
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 98%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --border: 0 0% 89.8%;
+    --ring: 217 91% 60%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --input: 0 0% 89.8%;
+    --radius: 0.5rem;
+  }
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    font-family: 'Roboto', Arial, sans-serif;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+@layer components {
+  .text-brand-navy {
+    color: #1E3A8A;
+  }
+  .bg-brand-navy {
+    background-color: #1E3A8A;
+  }
+  .comparison-table-header {
+    @apply bg-slate-50 border-b-2 border-slate-200 text-brand-navy font-bold py-4 px-4 text-left;
+  }
+  .comparison-table-cell {
+    @apply py-4 px-4 border-b border-slate-100 align-top;
+  }
+  .comparison-row-active {
+    @apply bg-blue-50/50 ring-1 ring-inset ring-blue-500/20;
+  }
+}
+@keyframes success-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+.animate-success-pulse {
+  animation: success-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
