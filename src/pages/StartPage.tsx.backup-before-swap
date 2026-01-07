@@ -34,8 +34,7 @@ import {
     X,
     Upload,
     Star,
-    CreditCard,
-    QrCode,
+    CreditCard
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, Link, useLocation } from "react-router-dom";
@@ -155,7 +154,9 @@ export default function StartPage() {
     const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
 
     // Step 3: Contact & Headquarters
-
+    const [address, setAddress] = useState("");
+    const [phone3, setPhone3] = useState("");
+    const [email3, setEmail3] = useState("");
     const [website, setWebsite] = useState("");
     const [fax, setFax] = useState("");
     const [addressWarning, setAddressWarning] = useState(false);
@@ -230,28 +231,6 @@ export default function StartPage() {
     const totalSteps = 10;
     const progressValue = currentStep === 'success' ? 100 : (Number(currentStep) / totalSteps) * 100;
 
-    // Validation helpers
-    const isValidPhone = (phone: string): boolean => {
-        // Vietnam phone: 10 digits, starts with 0
-        const phoneRegex = /^0\d{9}$/;
-        return phoneRegex.test(phone.trim());
-    };
-
-    const isValidEmail = (email: string): boolean => {
-        // Standard email regex
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email.trim());
-    };
-
-    const isValidIDNumber = (id: string): boolean => {
-        const idRegex = /^\d{9}$|^\d{12}$/;
-        return idRegex.test(id.trim());
-    };
-
-    const isValidText = (text: string, minLength: number = 3): boolean => {
-        return text.trim().length >= minLength;
-    };
-
     // Auto-translate Vietnamese name to English
     const handleTranslateName = async () => {
         if (!companyNameVi.trim()) return;
@@ -307,31 +286,23 @@ export default function StartPage() {
                 toast.error(data.message || "Tên đã tồn tại");
             }
         } catch (error) {
-            // Fallback for development/testing if API is not available
-            console.warn("API check failed, falling back to mock success");
-            setNameAvailable(true);
-            toast.success("Tên khả dụng (Chế độ Offline)!");
-            // Auto-fill dummy English name
-            if (!companyNameEn) {
-                setCompanyNameEn(companyNameVi.toUpperCase() + " COMPANY LIMITED");
-            }
+            toast.error("Lỗi khi kiểm tra tên");
+            setNameAvailable(null);
         } finally {
             setIsCheckingName(false);
-            // Force close dropdown after check completes
-            setRegistryCloseSignal(Date.now());
         }
     };
 
     // Check address for warnings
     useEffect(() => {
         const keywords = ['chung cư', 'chung cu', 'tập thể', 'tap the'];
-        const hasKeyword = keywords.some(kw => addressStreet.toLowerCase().includes(kw));
+        const hasKeyword = keywords.some(kw => address.toLowerCase().includes(kw));
         setAddressWarning(hasKeyword);
-    }, [addressStreet]);
+    }, [address]);
 
     // Auto-calculate founder percentages
     useEffect(() => {
-        const capital = parseFloat(charterCapital.replace(/\./g, '')) || 0;
+        const capital = parseFloat(charterCapital.replace(/,/g, '')) || 0;
         if (capital > 0) {
             setFounders(prev => prev.map(f => ({
                 ...f,
@@ -352,17 +323,7 @@ export default function StartPage() {
         }
 
         const totalPercentage = founders.reduce((sum, f) => sum + f.ownershipPercentage, 0);
-        const isDistributionValid = Math.abs(totalPercentage - 100) < 0.01;
-
-        const areFieldsValid = founders.every(f =>
-            isValidText(f.name, 3) &&
-            isValidIDNumber(f.idNumber) &&
-            isValidText(f.permanentAddress, 5) &&
-            isValidText(f.contactAddress, 5) &&
-            f.capitalContribution > 0
-        );
-
-        return isDistributionValid && areFieldsValid;
+        return Math.abs(totalPercentage - 100) < 0.01; // Account for floating point errors
     };
 
     const addFounder = () => {
@@ -396,22 +357,19 @@ export default function StartPage() {
 
         setIsSubmitting(true);
         try {
-            const provinceName = VIETNAM_PROVINCES.find(p => p.id === selectedProvince)?.name || selectedProvince;
-            const fullAddress = `${addressStreet}, ${addressWard}, ${addressDistrict}, ${provinceName}`;
-
             const payload = {
                 businessType,
                 companyNameVi,
                 companyNameEn,
                 abbreviation,
-                address: fullAddress,
-                phone: companyPhone,
-                email: companyEmail,
+                address,
+                phone: phone3,
+                email: email3,
                 website,
                 fax,
                 businessLines,
                 vatMethod,
-                charterCapital: parseFloat(charterCapital.replace(/\./g, '')) || 0,
+                charterCapital: parseFloat(charterCapital.replace(/,/g, '')) || 0,
                 assetContribution,
                 capitalCompletionDate,
                 legalRepresentative: {
@@ -437,19 +395,10 @@ export default function StartPage() {
                 } : undefined,
                 founders,
                 selectedPackageId,
-                payerInfo: {
-                    name: payerName,
-                    phone: payerPhone,
-                    email: payerEmail,
-                    idNumber: payerIDNumber,
-                    address: payerAddress,
-                },
-                paymentMethod,
-                timestamp: new Date().toISOString()
             };
 
             // Mock submission - replace with actual API call
-            console.log('[SUBMIT Payload]', payload);
+            console.log('[SUBMIT]', payload);
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             const ref = `CONTI-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
@@ -457,7 +406,6 @@ export default function StartPage() {
             setCurrentStep('success');
             toast.success("Gửi hồ sơ thành công!");
         } catch (error) {
-            console.error(error);
             toast.error("Gửi hồ sơ thất bại");
         } finally {
             setIsSubmitting(false);
@@ -583,7 +531,7 @@ export default function StartPage() {
 
                                             <div className="text-sm mt-4">
                                                 <p className="font-medium">
-                                                    Số thành viên: {type.minMembers === type.maxMembers ? type.minMembers : `${type.minMembers} -${type.maxMembers === Infinity ? 'Không giới hạn' : type.maxMembers} `}
+                                                    Số thành viên: {type.minMembers === type.maxMembers ? type.minMembers : `${type.minMembers}-${type.maxMembers === Infinity ? 'Không giới hạn' : type.maxMembers}`}
                                                 </p>
                                             </div>
                                         </Card>
@@ -729,9 +677,6 @@ export default function StartPage() {
                                                         className="h-12 pl-10"
                                                     />
                                                 </div>
-                                                {companyPhone && !isValidPhone(companyPhone) && (
-                                                    <p className="text-sm text-red-600 mt-1">Số điện thoại phải có 10 chữ số và bắt đầu bằng 0</p>
-                                                )}
                                             </div>
 
                                             <div className="space-y-2">
@@ -746,13 +691,6 @@ export default function StartPage() {
                                                         className="h-12 pl-10"
                                                     />
                                                 </div>
-                                                <p className="text-xs text-muted-foreground mt-1">
-                                                    Nên dùng email riêng cho doanh nghiệp (tách biệt mail cá nhân). <br />
-                                                    <a href="#" className="text-blue-600 underline hover:text-blue-800 font-medium">Mua tài khoản Microsoft 365 tại Conti</a>
-                                                </p>
-                                                {companyEmail && !isValidEmail(companyEmail) && (
-                                                    <p className="text-sm text-red-600 mt-1">Email không hợp lệ (vd: user@example.com)</p>
-                                                )}
 
                                                 {/* Microsoft 365 Suggestion */}
                                                 <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -903,13 +841,7 @@ export default function StartPage() {
                                     </Button>
                                     <Button
                                         onClick={() => setCurrentStep(5)}
-                                        disabled={
-                                            !isValidPhone(companyPhone) ||
-                                            !isValidEmail(companyEmail) ||
-                                            !isValidText(addressStreet, 5) ||
-                                            !isValidText(addressWard, 3) ||
-                                            !isValidText(addressDistrict, 3)
-                                        }
+                                        disabled={!companyPhone || !companyEmail || !addressStreet || !addressWard || !addressDistrict}
                                         className="h-14 px-16 bg-blue-600 text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700"
                                     >
                                         Tiếp tục <ArrowRight className="ml-2 h-5 w-5" />
@@ -918,9 +850,9 @@ export default function StartPage() {
                             </motion.div>
                         )}
 
-                        {/* STEP 6: Business Lines */}
-                        {currentStep === 6 && (
-                            <motion.div key="step6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10 max-w-3xl mx-auto">
+                        {/* STEP 4: Business Details */}
+                        {currentStep === 5 && (
+                            <motion.div key="step4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10 max-w-3xl mx-auto">
                                 <div className="text-center space-y-4">
                                     <h2 className="text-3xl font-display font-bold text-brand-navy">Ngành nghề & Thuế</h2>
                                     <p className="text-muted-foreground">Lĩnh vực hoạt động và phương pháp tính thuế</p>
@@ -929,13 +861,10 @@ export default function StartPage() {
                                 <Card className="p-8 space-y-6">
                                     <div className="space-y-2">
                                         <Label className="font-bold">Ngành nghề kinh doanh *</Label>
-                                        <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800 mb-2">
-                                            <span className="font-bold">Lưu ý:</span> Liệt kê chi tiết các ngành nghề, cách nhau bằng dấu phẩy (,).
-                                        </div>
                                         <Textarea
                                             value={businessLines}
                                             onChange={(e) => setBusinessLines(e.target.value)}
-                                            placeholder="VD: Buôn bán phần mềm, Tư vấn quản trị hệ thống máy tính, Dịch vụ xử lý dữ liệu..."
+                                            placeholder="Liệt kê lĩnh vực hoạt động theo từ ngữ thông thường, VD: Thương mại điện tử, Tư vấn quản trị, Phát triển phần mềm..."
                                             rows={5}
                                             className="resize-none"
                                         />
@@ -964,16 +893,9 @@ export default function StartPage() {
                                     </div>
                                 </Card>
 
-                                <div className="flex justify-between pt-4">
+                                <div className="flex justify-center pt-4">
                                     <Button
-                                        variant="outline"
                                         onClick={() => setCurrentStep(5)}
-                                        className="h-14 px-8"
-                                    >
-                                        <ArrowLeft className="mr-2 h-5 w-5" /> Quay lại
-                                    </Button>
-                                    <Button
-                                        onClick={() => setCurrentStep(7)}
                                         disabled={!businessLines.trim()}
                                         className="h-14 px-16 bg-blue-600 text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700"
                                     >
@@ -984,7 +906,7 @@ export default function StartPage() {
                         )}
 
                         {/* STEP 5: Capital & Personnel */}
-                        {currentStep === 5 && (
+                        {currentStep === 6 && (
                             <motion.div key="step5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10 max-w-4xl mx-auto">
                                 <div className="text-center space-y-4">
                                     <h2 className="text-3xl font-display font-bold text-brand-navy">Vốn & Nhân sự</h2>
@@ -1235,159 +1157,12 @@ export default function StartPage() {
                                             </div>
                                         )}
                                     </div>
-                                    {/* Merged Founders/Shareholders Logic into Step 5 */}
-                                    {(businessType === 'tnhh2' || businessType === 'co-phan') && (
-                                        <>
-                                            <div className="border-t pt-6" />
-                                            <div className="space-y-6">
-                                                <h3 className="text-xl font-bold flex items-center gap-2">
-                                                    <Users className="h-6 w-6 text-blue-600" />
-                                                    Sáng lập viên / Cổ đông
-                                                </h3>
-                                                <p className="text-sm text-muted-foreground -mt-4 mb-2">
-                                                    Yêu cầu: {BUSINESS_TYPES.find(t => t.id === businessType)?.minMembers || 1}+ thành viên
-                                                </p>
-
-                                                {founders.length === 0 && (
-                                                    <div className="text-center py-6 text-muted-foreground border-2 border-dashed rounded-lg">
-                                                        <p>Chưa có thành viên nào. Nhấn "Thêm thành viên" để bắt đầu.</p>
-                                                    </div>
-                                                )}
-
-                                                {founders.map((founder, index) => (
-                                                    <div key={founder.id} className="p-6 border-2 rounded-lg bg-slate-50 relative">
-                                                        <div className="flex justify-between items-center mb-4">
-                                                            <h3 className="font-bold text-lg">Thành viên #{index + 1}</h3>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => removeFounder(founder.id)}
-                                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                            >
-                                                                <X className="h-4 w-4 mr-1" />
-                                                                Xóa
-                                                            </Button>
-                                                        </div>
-
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            <div className="space-y-2">
-                                                                <Label className="text-sm font-bold">Họ và tên *</Label>
-                                                                <Input
-                                                                    value={founder.name}
-                                                                    onChange={(e) => updateFounder(founder.id, 'name', e.target.value.toUpperCase())}
-                                                                    placeholder="NGUYỄN VĂN A"
-                                                                />
-                                                                {founder.name && !isValidText(founder.name, 3) && (
-                                                                    <p className="text-sm text-red-600 mt-1">Tên phải có ít nhất 3 ký tự</p>
-                                                                )}
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-sm font-bold">Số CCCD *</Label>
-                                                                <Input
-                                                                    value={founder.idNumber}
-                                                                    onChange={(e) => updateFounder(founder.id, 'idNumber', e.target.value)}
-                                                                    placeholder="001234567890"
-                                                                />
-                                                                {founder.idNumber && !isValidIDNumber(founder.idNumber) && (
-                                                                    <p className="text-sm text-red-600 mt-1">Số CCCD phải có 9 hoặc 12 chữ số</p>
-                                                                )}
-                                                            </div>
-                                                            <div className="space-y-2 md:col-span-2">
-                                                                <Label className="text-sm font-bold">Địa chỉ thường trú *</Label>
-                                                                <Textarea
-                                                                    value={founder.permanentAddress}
-                                                                    onChange={(e) => updateFounder(founder.id, 'permanentAddress', e.target.value)}
-                                                                    rows={2}
-                                                                    className="resize-none"
-                                                                />
-                                                                {founder.permanentAddress && !isValidText(founder.permanentAddress, 5) && (
-                                                                    <p className="text-sm text-red-600 mt-1">Địa chỉ quá ngắn (tối thiểu 5 ký tự)</p>
-                                                                )}
-                                                            </div>
-                                                            <div className="space-y-2 md:col-span-2">
-                                                                <Label className="text-sm font-bold">Địa chỉ liên hệ *</Label>
-                                                                <Textarea
-                                                                    value={founder.contactAddress}
-                                                                    onChange={(e) => updateFounder(founder.id, 'contactAddress', e.target.value)}
-                                                                    rows={2}
-                                                                    className="resize-none"
-                                                                />
-                                                                {founder.contactAddress && !isValidText(founder.contactAddress, 5) && (
-                                                                    <p className="text-sm text-red-600 mt-1">Địa chỉ quá ngắn (tối thiểu 5 ký tự)</p>
-                                                                )}
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-sm font-bold">Số vốn góp (VNĐ) *</Label>
-                                                                <Input
-                                                                    type="text"
-                                                                    value={founder.capitalContribution.toLocaleString('vi-VN')}
-                                                                    onChange={(e) => {
-                                                                        const value = e.target.value.replace(/[^0-9]/g, '');
-                                                                        updateFounder(founder.id, 'capitalContribution', parseInt(value) || 0);
-                                                                    }}
-                                                                    placeholder="10,000,000"
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-sm font-bold">Tỷ lệ sở hữu (%)</Label>
-                                                                <div className="h-10 px-4 border rounded-md bg-blue-50 flex items-center font-bold text-blue-600">
-                                                                    {founder.ownershipPercentage.toFixed(2)}%
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-
-                                                <Button
-                                                    onClick={addFounder}
-                                                    variant="outline"
-                                                    className="w-full h-12 border-dashed border-2 hover:bg-blue-50"
-                                                >
-                                                    <UserPlus className="mr-2 h-5 w-5" />
-                                                    Thêm thành viên
-                                                </Button>
-
-                                                {founders.length > 0 && (
-                                                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="font-bold">Tổng tỷ lệ sở hữu:</span>
-                                                            <span className={cn(
-                                                                "text-xl font-black",
-                                                                Math.abs(founders.reduce((sum, f) => sum + f.ownershipPercentage, 0) - 100) < 0.01
-                                                                    ? "text-green-600"
-                                                                    : "text-red-600"
-                                                            )}>
-                                                                {founders.reduce((sum, f) => sum + f.ownershipPercentage, 0).toFixed(2)}%
-                                                            </span>
-                                                        </div>
-                                                        {Math.abs(founders.reduce((sum, f) => sum + f.ownershipPercentage, 0) - 100) >= 0.01 && (
-                                                            <p className="text-sm text-red-600 mt-2">
-                                                                Tổng tỷ lệ phải bằng 100%
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </>
-                                    )}
                                 </Card>
 
-                                <div className="flex justify-between pt-4">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => setCurrentStep(4)}
-                                        className="h-14 px-8"
-                                    >
-                                        <ArrowLeft className="mr-2 h-5 w-5" /> Quay lại
-                                    </Button>
+                                <div className="flex justify-center pt-4">
                                     <Button
                                         onClick={() => setCurrentStep(6)}
-                                        disabled={
-                                            !charterCapital ||
-                                            !capitalCompletionDate ||
-                                            !legalRepName ||
-                                            ((businessType === 'tnhh2' || businessType === 'co-phan') && !isFoundersValid())
-                                        }
+                                        disabled={!charterCapital || !capitalCompletionDate || !legalRepName}
                                         className="h-14 px-16 bg-blue-600 text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700"
                                     >
                                         Tiếp tục <ArrowRight className="ml-2 h-5 w-5" />
@@ -1396,75 +1171,134 @@ export default function StartPage() {
                             </motion.div>
                         )}
 
-                        {/* STEP 7: Review Information (NEW - Was Step 10 logic) */}
+                        {/* STEP 6: Founders/Shareholders */}
                         {currentStep === 7 && (
-                            <motion.div key="step7-review" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10 max-w-4xl mx-auto">
+                            <motion.div key="step6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10 max-w-5xl mx-auto">
                                 <div className="text-center space-y-4">
-                                    <h2 className="text-3xl font-display font-bold text-brand-navy">Xác nhận thông tin</h2>
-                                    <p className="text-muted-foreground">Kiểm tra lại toàn bộ thông tin đã cung cấp</p>
+                                    <h2 className="text-3xl font-display font-bold text-brand-navy">Sáng lập viên / Cổ đông</h2>
+                                    <p className="text-muted-foreground">
+                                        Thông tin các thành viên góp vốn
+                                        {businessType && ` - Yêu cầu: ${BUSINESS_TYPES.find(t => t.id === businessType)?.minMembers || 1}+ thành viên`}
+                                    </p>
                                 </div>
 
-                                <Card className="overflow-hidden shadow-xl border-none">
-                                    <div className="bg-brand-navy p-6 text-white flex justify-between items-center">
-                                        <div>
-                                            <h3 className="text-xl font-bold">THÔNG TIN ĐĂNG KÝ</h3>
-                                            <p className="text-blue-200 text-xs mt-1 uppercase tracking-widest">BƯỚC 7/10</p>
+                                <Card className="p-8 space-y-6">
+                                    {founders.length === 0 && (
+                                        <div className="text-center py-12 text-muted-foreground">
+                                            <Users className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                                            <p>Chưa có thành viên nào. Nhấn "Thêm thành viên" để bắt đầu.</p>
                                         </div>
-                                        <FileText className="h-8 w-8 opacity-50" />
-                                    </div>
+                                    )}
 
-                                    <div className="p-8 space-y-6 bg-white">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                            {/* Left Column */}
-                                            <div className="space-y-6">
-                                                <div>
-                                                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Loại hình & Tên</p>
-                                                    <p className="font-bold text-lg">{BUSINESS_TYPES.find(t => t.id === businessType)?.name}</p>
-                                                    <p className="font-bold text-blue-800">{companyNameVi}</p>
-                                                    <p className="text-sm text-gray-600 italic">{companyNameEn}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Địa chỉ trụ sở</p>
-                                                    <p className="text-sm">{addressStreet}, {addressWard}, {addressDistrict}, {VIETNAM_PROVINCES.find(p => p.id === selectedProvince)?.name}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Liên hệ</p>
-                                                    <p className="text-sm">{companyPhone}</p>
-                                                    <p className="text-sm">{companyEmail}</p>
-                                                </div>
+                                    {founders.map((founder, index) => (
+                                        <div key={founder.id} className="p-6 border-2 rounded-lg bg-slate-50 relative">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h3 className="font-bold text-lg">Thành viên #{index + 1}</h3>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => removeFounder(founder.id)}
+                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                >
+                                                    <X className="h-4 w-4 mr-1" />
+                                                    Xóa
+                                                </Button>
                                             </div>
 
-                                            {/* Right Column */}
-                                            <div className="space-y-6">
-                                                <div>
-                                                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Vốn & Nhân sự</p>
-                                                    <p className="text-xl font-black text-blue-600">{charterCapital} VNĐ</p>
-                                                    <p className="text-sm mt-1">Đại diện PL: <span className="font-bold">{legalRepName}</span> ({legalRepTitle})</p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label className="text-sm font-bold">Họ và tên *</Label>
+                                                    <Input
+                                                        value={founder.name}
+                                                        onChange={(e) => updateFounder(founder.id, 'name', e.target.value.toUpperCase())}
+                                                        placeholder="NGUYỄN VĂN A"
+                                                    />
                                                 </div>
-                                                {founders.length > 0 && (
-                                                    <div>
-                                                        <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Thành viên góp vốn</p>
-                                                        <ul className="text-sm space-y-1">
-                                                            {founders.map((f, i) => (
-                                                                <li key={i}>{f.name}: {f.ownershipPercentage.toFixed(2)}%</li>
-                                                            ))}
-                                                        </ul>
+                                                <div className="space-y-2">
+                                                    <Label className="text-sm font-bold">Số CCCD *</Label>
+                                                    <Input
+                                                        value={founder.idNumber}
+                                                        onChange={(e) => updateFounder(founder.id, 'idNumber', e.target.value)}
+                                                        placeholder="001234567890"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2 md:col-span-2">
+                                                    <Label className="text-sm font-bold">Địa chỉ thường trú *</Label>
+                                                    <Textarea
+                                                        value={founder.permanentAddress}
+                                                        onChange={(e) => updateFounder(founder.id, 'permanentAddress', e.target.value)}
+                                                        rows={2}
+                                                        className="resize-none"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2 md:col-span-2">
+                                                    <Label className="text-sm font-bold">Địa chỉ liên hệ *</Label>
+                                                    <Textarea
+                                                        value={founder.contactAddress}
+                                                        onChange={(e) => updateFounder(founder.id, 'contactAddress', e.target.value)}
+                                                        rows={2}
+                                                        className="resize-none"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-sm font-bold">Số vốn góp (VNĐ) *</Label>
+                                                    <Input
+                                                        type="text"
+                                                        value={founder.capitalContribution.toLocaleString('vi-VN')}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value.replace(/[^0-9]/g, '');
+                                                            updateFounder(founder.id, 'capitalContribution', parseInt(value) || 0);
+                                                        }}
+                                                        placeholder="10,000,000"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-sm font-bold">Tỷ lệ sở hữu (%)</Label>
+                                                    <div className="h-10 px-4 border rounded-md bg-blue-50 flex items-center font-bold text-blue-600">
+                                                        {founder.ownershipPercentage.toFixed(2)}%
                                                     </div>
-                                                )}
-                                                <div>
-                                                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Ngành nghề</p>
-                                                    <p className="text-sm line-clamp-3">{businessLines}</p>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    ))}
+
+                                    <Button
+                                        onClick={addFounder}
+                                        variant="outline"
+                                        className="w-full h-12 border-dashed border-2 hover:bg-blue-50"
+                                    >
+                                        <UserPlus className="mr-2 h-5 w-5" />
+                                        Thêm thành viên
+                                    </Button>
+
+                                    {founders.length > 0 && (
+                                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-bold">Tổng tỷ lệ sở hữu:</span>
+                                                <span className={cn(
+                                                    "text-xl font-black",
+                                                    Math.abs(founders.reduce((sum, f) => sum + f.ownershipPercentage, 0) - 100) < 0.01
+                                                        ? "text-green-600"
+                                                        : "text-red-600"
+                                                )}>
+                                                    {founders.reduce((sum, f) => sum + f.ownershipPercentage, 0).toFixed(2)}%
+                                                </span>
+                                            </div>
+                                            {Math.abs(founders.reduce((sum, f) => sum + f.ownershipPercentage, 0) - 100) >= 0.01 && (
+                                                <p className="text-sm text-red-600 mt-2">
+                                                    Tổng tỷ lệ phải bằng 100%
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
                                 </Card>
 
-                                <div className="flex justify-between pt-4">
-                                    <Button variant="outline" onClick={() => setCurrentStep(6)} className="h-14 px-8">
-                                        <ArrowLeft className="mr-2 h-5 w-5" /> Quay lại
-                                    </Button>
-                                    <Button onClick={() => setCurrentStep(8)} className="h-14 px-16 bg-blue-600 text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700">
+                                <div className="flex justify-center pt-4">
+                                    <Button
+                                        onClick={() => setCurrentStep(7)}
+                                        disabled={!isFoundersValid()}
+                                        className="h-14 px-16 bg-blue-600 text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700"
+                                    >
                                         Tiếp tục <ArrowRight className="ml-2 h-5 w-5" />
                                     </Button>
                                 </div>
@@ -1476,11 +1310,7 @@ export default function StartPage() {
                             <motion.div key="step7" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10 max-w-6xl mx-auto">
                                 <div className="text-center space-y-4">
                                     <h2 className="text-3xl font-display font-bold text-brand-navy">Chọn gói dịch vụ</h2>
-                                    <p className="text-muted-foreground">
-                                        Lựa chọn gói phù hợp với nhu cầu của doanh nghiệp
-                                        <br />
-                                        <span className="text-sm font-semibold text-orange-600">(Lưu ý: Giá dịch vụ chưa bao gồm thuế GTGT)</span>
-                                    </p>
+                                    <p className="text-muted-foreground">Lựa chọn gói phù hợp với nhu cầu của doanh nghiệp</p>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1519,117 +1349,19 @@ export default function StartPage() {
                                     ))}
                                 </div>
 
-                                <div className="flex justify-between pt-4">
+                                <div className="flex justify-center pt-4">
                                     <Button
-                                        variant="outline"
-                                        onClick={() => setCurrentStep(7)}
-                                        className="h-14 px-8"
-                                    >
-                                        <ArrowLeft className="mr-2 h-5 w-5" /> Quay lại
-                                    </Button>
-                                    <Button
-                                        onClick={() => setCurrentStep(9)}
-                                        className="h-14 px-16 bg-blue-600 text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700"
-                                    >
-                                        Tiếp tục <ArrowRight className="ml-2 h-5 w-5" />
-                                    </Button>
-                                </div>
-                            </motion.div>
-                        )}
-
-                        {/* STEP 9: Payer Information */}
-                        {currentStep === 9 && (
-                            <motion.div key="step9" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10 max-w-3xl mx-auto">
-                                <div className="text-center space-y-4">
-                                    <h2 className="text-3xl font-display font-bold text-brand-navy">Thông tin người nộp tiền</h2>
-                                    <p className="text-muted-foreground">Thông tin xuất hóa đơn và liên hệ thanh toán</p>
-                                </div>
-
-                                <Card className="p-8 space-y-6">
-                                    <div className="flex items-center space-x-2 pb-4 border-b">
-                                        <Checkbox
-                                            id="same-as-rep"
-                                            checked={payerSameAsLegalRep}
-                                            onCheckedChange={(checked) => {
-                                                setPayerSameAsLegalRep(!!checked);
-                                                if (checked) {
-                                                    setPayerName(legalRepName);
-                                                    setPayerIDNumber(legalRepIDNumber);
-                                                } else {
-                                                    setPayerName("");
-                                                    setPayerIDNumber("");
-                                                }
-                                            }}
-                                        />
-                                        <Label htmlFor="same-as-rep">Giống thông tin người đại diện pháp luật</Label>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <Label className="font-bold">Họ và tên *</Label>
-                                            <Input value={payerName} onChange={(e) => setPayerName(e.target.value.toUpperCase())} placeholder="NGUYỄN VĂN A" />
-                                            {payerName && !isValidText(payerName, 3) && (
-                                                <p className="text-sm text-red-600 mt-1">Tên phải có ít nhất 3 ký tự</p>
-                                            )}
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="font-bold">Số điện thoại *</Label>
-                                            <Input value={payerPhone} onChange={(e) => setPayerPhone(e.target.value)} placeholder="0912345678" />
-                                            {payerPhone && !isValidPhone(payerPhone) && (
-                                                <p className="text-sm text-red-600 mt-1">Số điện thoại không hợp lệ (10 số, bắt đầu bằng 0)</p>
-                                            )}
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="font-bold">Email *</Label>
-                                            <Input value={payerEmail} onChange={(e) => setPayerEmail(e.target.value)} placeholder="email@example.com" />
-                                            {payerEmail && !isValidEmail(payerEmail) && (
-                                                <p className="text-sm text-red-600 mt-1">Email không đúng định dạng</p>
-                                            )}
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="font-bold">MST / CCCD *</Label>
-                                            <Input value={payerIDNumber} onChange={(e) => setPayerIDNumber(e.target.value)} placeholder="0101234567" />
-                                            {payerIDNumber && !isValidIDNumber(payerIDNumber) && (
-                                                <p className="text-sm text-red-600 mt-1">Mã số phải có 9 hoặc 12 chữ số</p>
-                                            )}
-                                        </div>
-                                        <div className="space-y-2 md:col-span-2">
-                                            <Label className="font-bold">Địa chỉ xuất hóa đơn *</Label>
-                                            <Textarea value={payerAddress} onChange={(e) => setPayerAddress(e.target.value)} rows={2} />
-                                            {payerAddress && !isValidText(payerAddress, 5) && (
-                                                <p className="text-sm text-red-600 mt-1">Địa chỉ quá ngắn (tối thiểu 5 ký tự)</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <div className="flex justify-between pt-4">
-                                    <Button
-                                        variant="outline"
                                         onClick={() => setCurrentStep(8)}
-                                        className="h-14 px-8"
-                                    >
-                                        <ArrowLeft className="mr-2 h-5 w-5" /> Quay lại
-                                    </Button>
-                                    <Button
-                                        onClick={() => setCurrentStep(10)}
-                                        disabled={
-                                            !isValidText(payerName, 3) ||
-                                            !isValidPhone(payerPhone) ||
-                                            !isValidEmail(payerEmail) ||
-                                            !isValidIDNumber(payerIDNumber) ||
-                                            !isValidText(payerAddress, 5)
-                                        }
                                         className="h-14 px-16 bg-blue-600 text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700"
                                     >
-                                        Tiếp tục <ArrowRight className="ml-2 h-5 w-5" />
+                                        Xem tóm tắt & Thanh toán <ArrowRight className="ml-2 h-5 w-5" />
                                     </Button>
                                 </div>
                             </motion.div>
                         )}
 
-                        {/* STEP 10: Confirmation & Payment */}
-                        {currentStep === 10 && (
+                        {/* STEP 8: Confirmation & Payment */}
+                        {currentStep === 9 && (
                             <motion.div key="step8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10 max-w-4xl mx-auto">
                                 <div className="text-center space-y-4">
                                     <h2 className="text-3xl font-display font-bold text-brand-navy">Xác nhận thông tin</h2>
@@ -1647,40 +1379,46 @@ export default function StartPage() {
 
                                     <div className="p-8 space-y-6 bg-white">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {/* Simplified Step 10: Payment Selection only */}
-                                            <div className="space-y-4 md:col-span-2">
-                                                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-center">
-                                                    <p className="text-xl font-bold text-blue-800">TỔNG THANH TOÁN</p>
-                                                    <p className="text-4xl font-black text-blue-600 mt-2">{formatCurrency(selectedPackage.price)}</p>
-                                                    <p className="text-sm text-blue-600 mt-1">(Đã bao gồm lệ phí nhà nước)</p>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Loại hình</p>
+                                                    <p className="font-bold">{BUSINESS_TYPES.find(t => t.id === businessType)?.name}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Tên công ty</p>
+                                                    <p className="font-bold">{companyNameVi}</p>
+                                                    <p className="text-sm text-muted-foreground italic">{companyNameEn}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Địa chỉ trụ sở</p>
+                                                    <p className="text-sm">{address}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Liên hệ</p>
+                                                    <p className="text-sm">{phone3} • {email3}</p>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <div className="border-t pt-6 space-y-4">
-                                            <h3 className="font-bold text-sm uppercase text-muted-foreground">Phương thức thanh toán</h3>
-                                            <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'qr' | 'transfer')}>
-                                                <div className={cn("p-4 border rounded-lg flex items-center space-x-3 cursor-pointer transition-all", paymentMethod === 'qr' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'hover:bg-gray-50')}>
-                                                    <RadioGroupItem value="qr" id="pay-qr" />
-                                                    <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                                                        <QrCode className="h-5 w-5" />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <Label htmlFor="pay-qr" className="font-bold cursor-pointer text-base">Thanh toán qua mã QR (SePay)</Label>
-                                                        <p className="text-sm text-green-600 font-medium">Xác nhận tự động trong 5 giây</p>
-                                                    </div>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Vốn điều lệ</p>
+                                                    <p className="text-2xl font-black text-blue-600">{charterCapital} VNĐ</p>
                                                 </div>
-                                                <div className={cn("p-4 border rounded-lg flex items-center space-x-3 cursor-pointer transition-all", paymentMethod === 'transfer' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'hover:bg-gray-50')}>
-                                                    <RadioGroupItem value="transfer" id="pay-manual" />
-                                                    <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
-                                                        <CreditCard className="h-5 w-5" />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <Label htmlFor="pay-manual" className="font-bold cursor-pointer text-base">Chuyển khoản thủ công</Label>
-                                                        <p className="text-sm text-muted-foreground">Nhân viên sẽ xác nhận sau 15 phút</p>
-                                                    </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Số thành viên</p>
+                                                    <p className="font-bold">{founders.length} thành viên</p>
                                                 </div>
-                                            </RadioGroup>
+                                                <div>
+                                                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Người đại diện</p>
+                                                    <p className="font-bold">{legalRepName}</p>
+                                                    <p className="text-sm text-muted-foreground">{legalRepTitle}</p>
+                                                </div>
+                                                <div className="p-4 bg-slate-50 rounded-lg border">
+                                                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Gói dịch vụ</p>
+                                                    <p className="font-bold">{selectedPackage.name}</p>
+                                                    <p className="text-2xl font-black text-blue-600 mt-1">{formatCurrency(selectedPackage.price)}</p>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div className="border-t pt-6 flex items-start gap-3">
@@ -1696,33 +1434,23 @@ export default function StartPage() {
                                             </Label>
                                         </div>
 
-                                        <div className="flex gap-4">
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => setCurrentStep(9)}
-                                                className="h-16 px-8 rounded-2xl"
-                                                type="button"
-                                            >
-                                                <ArrowLeft className="mr-2 h-5 w-5" /> Quay lại
-                                            </Button>
-                                            <Button
-                                                onClick={handleSubmitFinal}
-                                                disabled={isSubmitting || !isAgreed}
-                                                className="flex-1 h-16 bg-blue-600 hover:bg-blue-700 text-xl font-bold rounded-2xl shadow-xl"
-                                            >
-                                                {isSubmitting ? (
-                                                    <>
-                                                        <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                                                        Đang xử lý...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <CreditCard className="mr-2 h-6 w-6" />
-                                                        Thanh toán & Gửi hồ sơ
-                                                    </>
-                                                )}
-                                            </Button>
-                                        </div>
+                                        <Button
+                                            onClick={handleSubmitFinal}
+                                            disabled={isSubmitting || !isAgreed}
+                                            className="w-full h-16 bg-blue-600 hover:bg-blue-700 text-xl font-bold rounded-2xl shadow-xl"
+                                        >
+                                            {isSubmitting ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                                                    Đang xử lý...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CreditCard className="mr-2 h-6 w-6" />
+                                                    Thanh toán & Gửi hồ sơ
+                                                </>
+                                            )}
+                                        </Button>
                                     </div>
                                 </Card>
                             </motion.div>

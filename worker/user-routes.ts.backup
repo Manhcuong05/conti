@@ -112,15 +112,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       message: 'Chúc mừng! Tên doanh nghiệp này hiện đang khả dụng và sẵn sàng đăng ký.'
     } as CompanyCheckResult);
   });
-  // List all applications
-  app.get('/api/applications', async (c) => {
-    await ApplicationEntity.ensureSeed(c.env);
-    const cursor = c.req.query('cursor');
-    const limit = c.req.query('limit');
-    const page = await ApplicationEntity.list(c.env, cursor ?? null, limit ? Math.max(1, (Number(limit) | 0)) : undefined);
-    return ok(c, page);
-  });
-
   // Get application by ID (reference number)
   app.get('/api/applications/:id', async (c) => {
     const id = c.req.param('id');
@@ -213,7 +204,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     }
   });
 
-  // Translation endpoint (Dictionary-based)
+  // Translation endpoint (LLM integration - mock)
   app.post('/api/translate', async (c) => {
     try {
       const { text, sourceLang, targetLang } = (await c.req.json()) as {
@@ -222,12 +213,34 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         targetLang: string;
       };
 
+      // Mock translation - in production, integrate with LLM or translation API
+      // Example: OpenAI, Google Translate, or custom LLM
       let translatedText = text.toUpperCase();
 
       if (targetLang === 'en' && sourceLang === 'vi') {
-        // Use dictionary-based translation
-        const { smartTranslateCompanyName } = await import('./translation-dictionary');
-        translatedText = smartTranslateCompanyName(text);
+        // Enhanced Vietnamese to English company name translation
+        let result = text.toUpperCase();
+
+        // Remove common Vietnamese company type prefixes
+        result = result
+          .replace(/^CÔNG TY TNHH MỘT THÀNH VIÊN\s*/i, '')
+          .replace(/^CÔNG TY TNHH 1 THÀNH VIÊN\s*/i, '')
+          .replace(/^CÔNG TY TNHH\s*/i, '')
+          .replace(/^CÔNG TY CỔ PHẦN\s*/i, '')
+          .replace(/^CÔNG TY\s*/i, '');
+
+        // Keep the core business name and add appropriate English suffix
+        result = result.trim();
+
+        // Determine the appropriate English company type suffix
+        const original = text.toUpperCase();
+        if (original.includes('TNHH') || original.includes('MỘT THÀNH VIÊN') || original.includes('1 THÀNH VIÊN')) {
+          translatedText = result + ' COMPANY LIMITED';
+        } else if (original.includes('CỔ PHẦN')) {
+          translatedText = result + ' JOINT STOCK COMPANY';
+        } else {
+          translatedText = result + ' COMPANY LIMITED';
+        }
       }
 
       console.log('[TRANSLATION]', { text, sourceLang, targetLang, translatedText });
