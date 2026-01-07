@@ -76,7 +76,7 @@ deploy:
       echo "☁️ Deploying..."
       # Wrangler tự động xử lý Prod/Preview dựa vào tên branch
       wrangler pages deploy dist \
-        --project-name "$CF_PAGES_PROJECT_NAME" \
+        --project-name "$CLOUDFLARE_PAGES_PROJECT" \
         --branch "$CI_COMMIT_BRANCH" \
         --commit-hash "$CI_COMMIT_SHA" \
         --commit-message "$CI_COMMIT_MESSAGE"
