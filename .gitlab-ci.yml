@@ -1,5 +1,5 @@
 image: 
-  name: oven/bun:latest
+  name: oven/bun:1-alpine
   entrypoint: [""]
 
 stages:
