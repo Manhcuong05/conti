@@ -1,0 +1,38 @@
+image: oven/bun:1.1
+
+stages:
+  - build
+  - deploy
+
+cache:
+  paths:
+    - node_modules/
+    - bun.lockb
+
+before_script:
+  - bun install
+
+build:
+  stage: build
+  script:
+    - bun run build
+  artifacts:
+    paths:
+      - dist
+    expire_in: 1 hour
+
+deploy_pages:
+  stage: deploy
+  script:
+    - |
+      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        bunx wrangler pages deploy dist \
+          --project-name="$CLOUDFLARE_PAGES_PROJECT"
+      else
+        bunx wrangler pages deploy dist \
+          --project-name="$CLOUDFLARE_PAGES_PROJECT" \
+          --branch="$CI_COMMIT_REF_NAME"
+      fi
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
