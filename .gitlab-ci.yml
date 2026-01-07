@@ -1,38 +1,82 @@
-image: oven/bun:1.1
+image: oven/bun:1.1.45
 
 stages:
   - build
   - deploy
 
+variables:
+  CI: "true"
+  BUN_INSTALL_CACHE_DIR: ~/.bun/install/cache
+
 cache:
+  key:
+    files:
+      - bun.lockb
   paths:
+    - ~/.bun/install/cache
     - node_modules/
-    - bun.lockb
 
-before_script:
-  - bun install
+default:
+  before_script:
+    - bun --version
 
+# =======================
+# BUILD
+# =======================
 build:
   stage: build
-  script:
-    - bun run build
-  artifacts:
-    paths:
-      - dist
-    expire_in: 1 hour
-
-deploy_pages:
-  stage: deploy
-  script:
-    - |
-      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
-        bunx wrangler pages deploy dist \
-          --project-name="$CLOUDFLARE_PAGES_PROJECT"
-      else
-        bunx wrangler pages deploy dist \
-          --project-name="$CLOUDFLARE_PAGES_PROJECT" \
-          --branch="$CI_COMMIT_REF_NAME"
-      fi
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - changes:
+        - src/**
+        - public/**
+        - scripts/**
+        - vite.config.*
+        - tsconfig*.json
+        - package.json
+        - bun.lockb
+  script:
+    - echo "📦 Install dependencies"
+    - bun install --frozen-lockfile
+
+    - echo "⚡ Build frontend & worker in parallel"
+    - bun run build:frontend &
+    - bun run build:worker &
+    - wait
+
+    - echo "🧩 Fix worker imports"
+    - bun run fix:worker-import
+
+  artifacts:
+    when: always
+    expire_in: 1 day
+    paths:
+      - dist/
+
+# =======================
+# DEPLOY (Prod & Preview)
+# =======================
+deploy:
+  stage: deploy
+  needs:
+    - job: build
+      artifacts: true
+  rules:
+    # Trường hợp 1: Main hoặc Master -> Deploy Production
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+    # Trường hợp 2: Các branch khác -> Deploy Preview
     - if: '$CI_COMMIT_BRANCH'
+  
+  script:
+    - echo "🚀 Deploying to Cloudflare Pages (Branch $CI_COMMIT_BRANCH)..."
+
+    - echo "🔧 Install wrangler"
+    - bun add -g wrangler
+    - |
+      echo "☁️ Deploying..."
+      # Wrangler tự động xử lý Prod/Preview dựa vào tên branch
+      wrangler pages deploy dist \
+        --project-name "$CF_PAGES_PROJECT_NAME" \
+        --branch "$CI_COMMIT_BRANCH" \
+        --commit-hash "$CI_COMMIT_SHA" \
+        --commit-message "$CI_COMMIT_MESSAGE"
+
