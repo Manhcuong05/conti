@@ -45,7 +45,7 @@ const customLogger = {
   hasErrorLogged: () => false,
 
   // Keep these as-is
-  clearScreen: () => {},
+  clearScreen: () => { },
   hasWarned: false,
 };
 
@@ -105,7 +105,15 @@ function reloadTriggerPlugin() {
 export default ({ mode }: { mode: string }) => {
   const env = loadEnv(mode, process.cwd());
   return defineConfig({
-    plugins: [react(), cloudflare(), watchDependenciesPlugin(), reloadTriggerPlugin()],
+    plugins: [
+      react(),
+      cloudflare({
+        configPath: './wrangler.worker.jsonc',
+        persistState: false  // Force clean state to avoid route conflicts
+      }),
+      watchDependenciesPlugin(),
+      reloadTriggerPlugin()
+    ],
     build: {
       minify: true,
       sourcemap: "inline", // Use inline source maps for better error reporting
