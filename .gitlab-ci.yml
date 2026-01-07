@@ -1,4 +1,6 @@
-image: oven/bun:latest
+image: 
+  name: oven/bun:latest
+  entrypoint: [""]
 
 stages:
   - build
@@ -11,10 +13,9 @@ variables:
 cache:
   key:
     files:
-      - bun.lockb
+      - bun.lock
   paths:
     - ~/.bun/install/cache
-    - node_modules/
 
 default:
   before_script:
