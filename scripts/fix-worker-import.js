@@ -69,7 +69,9 @@ for (const root of roots) {
   const companyRegistryPath = path.join(root, "shared", "company-registry.js");
   if (exists(companyRegistryPath)) {
     const dataOutDir = path.join(root, "data");
-    mkdirSync(dataOutDir, { recursive: true });
+    if (!exists(dataOutDir)) {
+      mkdirSync(dataOutDir, { recursive: true });
+    }
     const dataOut = path.join(dataOutDir, "thuvienphapluat.js");
     writeFileSync(dataOut, `export default ${readFileSync("data/thuvienphapluat.json", "utf8")};\n`);
     patchFile(companyRegistryPath, [[/\.\.\/data\/thuvienphapluat\.json\b/g, "../data/thuvienphapluat.js"]]);
