@@ -1,4 +1,4 @@
-image: oven/bun:1.1.45
+image: oven/bun:latest
 
 stages:
   - build
@@ -33,7 +33,7 @@ build:
         - vite.config.*
         - tsconfig*.json
         - package.json
-        - bun.lockb
+        - bun.lock
   script:
     - echo "📦 Install dependencies"
     - bun install --frozen-lockfile
