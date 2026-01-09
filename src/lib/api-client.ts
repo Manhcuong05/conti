@@ -6,3 +6,4 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok || !json.success || json.data === undefined) throw new Error(json.error || 'Request failed')
   return json.data
 }
+//trick
