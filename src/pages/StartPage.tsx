@@ -143,6 +143,12 @@ export default function StartPage() {
     const location = useLocation();
     const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState<OnboardingStep>(1);
+    const [showErrors, setShowErrors] = useState(false);
+
+    // Reset showErrors when step changes
+    useEffect(() => {
+        setShowErrors(false);
+    }, [currentStep]);
 
     // Step 1: Business Type
     const [businessType, setBusinessType] = useState<BusinessType | null>(null);
@@ -229,6 +235,59 @@ export default function StartPage() {
 
     const totalSteps = 10;
     const progressValue = currentStep === 'success' ? 100 : (Number(currentStep) / totalSteps) * 100;
+
+    // Generic Validation Logic
+    const validateStep = (step: OnboardingStep): boolean => {
+        switch (step) {
+            case 1: // Province
+                return !!selectedProvince;
+            case 2: // Business Type (was Step 1 in code but UI Step 2)
+                return !!businessType;
+            case 3: // Company Naming
+                return !!nameAvailable && !!companyNameVi && !!companyNameEn;
+            case 4: // Contact Info & Address
+                return isValidPhone(companyPhone) &&
+                    isValidEmail(companyEmail) &&
+                    isValidEmail(companyEmail) &&
+                    isValidText(addressStreet, 5) &&
+                    isValidText(addressWard, 3);
+            case 5: // Capital & Personnel
+                const isCapitalValid = !!charterCapital && !!capitalCompletionDate;
+                let isLegalRepValid = false;
+                if (legalRepMode === 'vneid') {
+                    isLegalRepValid = true; // Assume valid if uploading, or add check for uploaded file
+                } else {
+                    isLegalRepValid = !!legalRepName &&
+                        !!legalRepTitle &&
+                        !!legalRepDOB &&
+                        isValidIDNumber(legalRepIDNumber) &&
+                        !!legalRepIDDate &&
+                        !!legalRepIDPlace &&
+                        !!legalRepPermanentAddress &&
+                        !!legalRepContactAddress;
+                }
+                const isCAValid = hasChiefAccountant
+                    ? (!!caName && !!caDOB && isValidIDNumber(caIDNumber) && !!caIDDate && !!caIDPlace && isValidText(caAddress, 5))
+                    : true;
+                const isFoundersSectionValid = (businessType === 'tnhh2' || businessType === 'co-phan') ? isFoundersValid() : true;
+                return isCapitalValid && isLegalRepValid && isFoundersSectionValid && isCAValid;
+            case 6: // Business Lines
+                return !!businessLines.trim();
+            case 9: // Payer Info
+                return !!payerName && isValidPhone(payerPhone) && !!payerIDNumber && !!payerAddress;
+            default:
+                return true;
+        }
+    };
+
+    const handleNext = () => {
+        if (validateStep(currentStep)) {
+            setCurrentStep(prev => (Number(prev) + 1) as OnboardingStep);
+        } else {
+            setShowErrors(true);
+            toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
+        }
+    };
 
     // Validation helpers
     const isValidPhone = (phone: string): boolean => {
@@ -354,6 +413,7 @@ export default function StartPage() {
         const totalPercentage = founders.reduce((sum, f) => sum + f.ownershipPercentage, 0);
         const isDistributionValid = Math.abs(totalPercentage - 100) < 0.01;
 
+        // Check individual fields for all founders
         const areFieldsValid = founders.every(f =>
             isValidText(f.name, 3) &&
             isValidIDNumber(f.idNumber) &&
@@ -522,13 +582,18 @@ export default function StartPage() {
                                         <p className="text-sm text-muted-foreground">
                                             💡 Đây là nơi công ty sẽ đăng ký kinh doanh chính thức
                                         </p>
+                                        {showErrors && !selectedProvince && (
+                                            <div className="flex items-center gap-2 text-red-600 text-sm mt-2 animate-in fade-in slide-in-from-top-1">
+                                                <AlertCircle className="h-4 w-4" />
+                                                <span className="font-medium">Vui lòng chọn tỉnh/thành phố để tiếp tục</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </Card>
 
                                 <div className="flex justify-center pt-4">
                                     <Button
-                                        onClick={() => setCurrentStep(2)}
-                                        disabled={!selectedProvince}
+                                        onClick={handleNext}
                                         className="h-14 px-16 bg-blue-600 text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700"
                                     >
                                         Tiếp tục <ArrowRight className="ml-2 h-5 w-5" />
@@ -599,8 +664,7 @@ export default function StartPage() {
                                         <ArrowLeft className="mr-2 h-5 w-5" /> Quay lại
                                     </Button>
                                     <Button
-                                        onClick={() => setCurrentStep(3)}
-                                        disabled={!businessType}
+                                        onClick={handleNext}
                                         className="h-14 px-16 bg-blue-600 text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700"
                                     >
                                         Tiếp tục <ArrowRight className="ml-2 h-5 w-5" />
@@ -628,8 +692,14 @@ export default function StartPage() {
                                                     setNameAvailable(null);
                                                 }}
                                                 placeholder="VD: AD FLEX"
-                                                className="h-14 text-lg font-bold pr-32"
+                                                className={cn("h-14 text-lg font-bold pr-32", showErrors && !companyNameVi && "border-red-500 ring-red-500 focus:ring-red-500")}
                                             />
+                                            {showErrors && !companyNameVi && (
+                                                <div className="flex items-center gap-2 text-red-600 text-sm mt-2 animate-in fade-in slide-in-from-top-1">
+                                                    <AlertCircle className="h-4 w-4" />
+                                                    <span className="font-medium">Vui lòng nhập tên công ty bằng tiếng Việt</span>
+                                                </div>
+                                            )}
                                             <Button
                                                 onClick={handleCheckName}
                                                 disabled={isCheckingName || companyNameVi.length < 3}
@@ -667,8 +737,14 @@ export default function StartPage() {
                                             value={companyNameEn}
                                             onChange={(e) => setCompanyNameEn(e.target.value.toUpperCase())}
                                             placeholder="AD FLEX COMPANY LIMITED"
-                                            className="h-14 text-lg"
+                                            className={cn("h-14 text-lg", showErrors && !companyNameEn && "border-red-500 ring-red-500 focus:ring-red-500")}
                                         />
+                                        {showErrors && !companyNameEn && (
+                                            <div className="flex items-center gap-2 text-red-600 text-sm mt-2 animate-in fade-in slide-in-from-top-1">
+                                                <AlertCircle className="h-4 w-4" />
+                                                <span className="font-medium">Vui lòng nhập tên giao dịch quốc tế</span>
+                                            </div>
+                                        )}
                                         <p className="text-xs text-muted-foreground">Được tự động điền sau khi kiểm tra tên. Bạn có thể chỉnh sửa.</p>
                                     </div>
 
@@ -692,11 +768,16 @@ export default function StartPage() {
                                         <ArrowLeft className="mr-2 h-5 w-5" /> Quay lại
                                     </Button>
                                     <Button
-                                        onClick={() => setCurrentStep(4)}
-                                        disabled={!nameAvailable || !companyNameVi || !companyNameEn}
+                                        onClick={handleNext}
                                         className="h-14 px-16 bg-blue-600 text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700"
                                     >
                                         Tiếp tục <ArrowRight className="ml-2 h-5 w-5" />
+                                        {/* Show validation errors if trying to submit invalid form - General warning near button as a fallback or summary */}
+                                        {showErrors && (!companyNameVi || !companyNameEn) && (
+                                            <div className="absolute -bottom-10 w-full text-center text-red-600 font-medium text-sm animate-in fade-in slide-in-from-top-1">
+                                                Vui lòng kiểm tra lại thông tin bên trên
+                                            </div>
+                                        )}
                                     </Button>
                                 </div>
                             </motion.div>
@@ -726,11 +807,14 @@ export default function StartPage() {
                                                         value={companyPhone}
                                                         onChange={(e) => setCompanyPhone(e.target.value)}
                                                         placeholder="09xx xxx xxx"
-                                                        className="h-12 pl-10"
+                                                        className={cn("h-12 pl-10", showErrors && !isValidPhone(companyPhone) && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                     />
                                                 </div>
-                                                {companyPhone && !isValidPhone(companyPhone) && (
-                                                    <p className="text-sm text-red-600 mt-1">Số điện thoại phải có 10 chữ số và bắt đầu bằng 0</p>
+                                                {showErrors && !isValidPhone(companyPhone) && (
+                                                    <div className="flex items-center gap-2 text-red-600 text-sm mt-1 animate-in fade-in slide-in-from-top-1">
+                                                        <AlertCircle className="h-4 w-4" />
+                                                        <span>Số điện thoại không hợp lệ</span>
+                                                    </div>
                                                 )}
                                             </div>
 
@@ -743,31 +827,33 @@ export default function StartPage() {
                                                         value={companyEmail}
                                                         onChange={(e) => setCompanyEmail(e.target.value)}
                                                         placeholder="contact@company.com"
-                                                        className="h-12 pl-10"
+                                                        className={cn("h-12 pl-10", showErrors && !isValidEmail(companyEmail) && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                     />
                                                 </div>
+                                                {showErrors && !isValidEmail(companyEmail) && (
+                                                    <div className="flex items-center gap-2 text-red-600 text-sm mt-1 animate-in fade-in slide-in-from-top-1">
+                                                        <AlertCircle className="h-4 w-4" />
+                                                        <span>Email không hợp lệ</span>
+                                                    </div>
+                                                )}
                                                 <p className="text-xs text-muted-foreground mt-1">
                                                     Nên dùng email riêng cho doanh nghiệp (tách biệt mail cá nhân). <br />
                                                     <a href="#" className="text-blue-600 underline hover:text-blue-800 font-medium">Mua tài khoản Microsoft 365 tại Conti</a>
                                                 </p>
-                                                {companyEmail && !isValidEmail(companyEmail) && (
-                                                    <p className="text-sm text-red-600 mt-1">Email không hợp lệ (vd: user@example.com)</p>
-                                                )}
-
-                                                {/* Microsoft 365 Suggestion */}
-                                                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                                    <div className="flex gap-2 text-sm">
-                                                        <div className="shrink-0 text-blue-600">💡</div>
-                                                        <div>
-                                                            <p className="font-medium text-blue-900">Gợi ý chuyên nghiệp</p>
-                                                            <p className="text-blue-700 mt-1">
-                                                                Nên sử dụng email doanh nghiệp riêng (vd: info@congty.com) thay vì email cá nhân.
-                                                                <Link to="/services/microsoft-365" className="font-bold text-blue-600 hover:underline ml-1">
-                                                                    CONTI cung cấp tài khoản Microsoft 365 Business
-                                                                </Link>
-                                                            </p>
-                                                        </div>
-                                                    </div>
+                                            </div>
+                                        </div>
+                                        {/* Microsoft 365 Suggestion */}
+                                        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                            <div className="flex gap-2 text-sm">
+                                                <div className="shrink-0 text-blue-600">💡</div>
+                                                <div>
+                                                    <p className="font-medium text-blue-900">Gợi ý chuyên nghiệp</p>
+                                                    <p className="text-blue-700 mt-1">
+                                                        Nên sử dụng email doanh nghiệp riêng (vd: info@congty.com) thay vì email cá nhân.
+                                                        <Link to="/services/microsoft-365" className="font-bold text-blue-600 hover:underline ml-1">
+                                                            CONTI cung cấp tài khoản Microsoft 365 Business
+                                                        </Link>
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>
@@ -827,16 +913,9 @@ export default function StartPage() {
                                         </div>
 
                                         {/* District & Ward */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label className="font-bold">Quận/Huyện *</Label>
-                                                <Input
-                                                    value={addressDistrict}
-                                                    onChange={(e) => setAddressDistrict(e.target.value)}
-                                                    placeholder="VD: Quận Ba Đình"
-                                                    className="h-12"
-                                                />
-                                            </div>
+                                        {/* District & Ward - REMOVED DISTRICT as per user request */}
+                                        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                                            {/* District field removed */}
 
                                             <div className="space-y-2">
                                                 <Label className="font-bold">Phường/Xã *</Label>
@@ -844,8 +923,11 @@ export default function StartPage() {
                                                     value={addressWard}
                                                     onChange={(e) => setAddressWard(e.target.value)}
                                                     placeholder="VD: Phường Điện Biên"
-                                                    className="h-12"
+                                                    className={cn("h-12", showErrors && !isValidText(addressWard, 3) && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                 />
+                                                {showErrors && !isValidText(addressWard, 3) && (
+                                                    <p className="text-red-600 text-sm mt-1">Vui lòng nhập Phường/Xã</p>
+                                                )}
                                             </div>
                                         </div>
 
@@ -861,8 +943,11 @@ export default function StartPage() {
                                                     setAddressWarning(warning);
                                                 }}
                                                 placeholder="VD: Số 54 Liễu Giai"
-                                                className="h-12"
+                                                className={cn("h-12", showErrors && !isValidText(addressStreet, 5) && "border-red-500 ring-red-500 focus:ring-red-500")}
                                             />
+                                            {showErrors && !isValidText(addressStreet, 5) && (
+                                                <p className="text-red-600 text-sm mt-1">Vui lòng nhập địa chỉ chi tiết</p>
+                                            )}
                                         </div>
 
                                         {/* Full Address Preview */}
@@ -902,14 +987,7 @@ export default function StartPage() {
                                         <ArrowLeft className="mr-2 h-5 w-5" /> Quay lại
                                     </Button>
                                     <Button
-                                        onClick={() => setCurrentStep(5)}
-                                        disabled={
-                                            !isValidPhone(companyPhone) ||
-                                            !isValidEmail(companyEmail) ||
-                                            !isValidText(addressStreet, 5) ||
-                                            !isValidText(addressWard, 3) ||
-                                            !isValidText(addressDistrict, 3)
-                                        }
+                                        onClick={handleNext}
                                         className="h-14 px-16 bg-blue-600 text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700"
                                     >
                                         Tiếp tục <ArrowRight className="ml-2 h-5 w-5" />
@@ -939,6 +1017,12 @@ export default function StartPage() {
                                             rows={5}
                                             className="resize-none"
                                         />
+                                        {showErrors && !businessLines.trim() && (
+                                            <p className="text-red-600 text-sm mt-1">Vui lòng nhập ngành nghề kinh doanh</p>
+                                        )}
+                                        <p className="text-sm text-muted-foreground text-right mt-1">
+                                            Chuẩn bị các ngành nghề theo yêu cầu của bạn.
+                                        </p>
                                     </div>
 
                                     <div className="space-y-4">
@@ -973,12 +1057,12 @@ export default function StartPage() {
                                         <ArrowLeft className="mr-2 h-5 w-5" /> Quay lại
                                     </Button>
                                     <Button
-                                        onClick={() => setCurrentStep(7)}
-                                        disabled={!businessLines.trim()}
+                                        onClick={handleNext}
                                         className="h-14 px-16 bg-blue-600 text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700"
                                     >
                                         Tiếp tục <ArrowRight className="ml-2 h-5 w-5" />
                                     </Button>
+                                    {/* Removed previous error message near button */}
                                 </div>
                             </motion.div>
                         )}
@@ -1012,16 +1096,31 @@ export default function StartPage() {
                                                     placeholder="50,000,000"
                                                     className="h-12 text-lg font-bold"
                                                 />
+                                                {showErrors && !charterCapital && (
+                                                    <p className="text-red-600 text-sm mt-1">Vui lòng nhập vốn điều lệ</p>
+                                                )}
+                                                <p className="text-sm text-muted-foreground mt-2">
+                                                    💡 Nên để vốn điều lệ ở mức vừa phải để giảm phí môn bài.
+                                                    <br />- <strong>Dưới 10 tỷ:</strong> 2 triệu/năm
+                                                    <br />- <strong>Trên 10 tỷ:</strong> 3 triệu/năm
+                                                </p>
                                             </div>
 
                                             <div className="space-y-2">
-                                                <Label className="font-bold">Thời điểm hoàn thành góp vốn *</Label>
+                                                <Label className="flex items-center space-x-2 font-bold">
+                                                    <Calendar className="w-4 h-4 text-blue-600" />
+                                                    <span>Ngày hoàn thành góp vốn *</span>
+                                                </Label>
                                                 <Input
                                                     type="date"
                                                     value={capitalCompletionDate}
                                                     onChange={(e) => setCapitalCompletionDate(e.target.value)}
-                                                    className="h-12"
+                                                    className={cn("h-14 text-lg", showErrors && !capitalCompletionDate && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                 />
+                                                {showErrors && !capitalCompletionDate && (
+                                                    <p className="text-red-600 text-sm mt-1">Vui lòng chọn ngày hoàn thành</p>
+                                                )}
+                                                <p className="text-xs text-muted-foreground">Theo luật, tối đa 90 ngày kể từ ngày cấp giấy phép.</p>
                                             </div>
                                         </div>
 
@@ -1077,87 +1176,116 @@ export default function StartPage() {
                                         )}
 
                                         {legalRepMode === 'manual' && (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-4">
                                                 <div className="space-y-2">
                                                     <Label className="font-bold">Họ và tên *</Label>
                                                     <Input
                                                         value={legalRepName}
                                                         onChange={(e) => setLegalRepName(e.target.value.toUpperCase())}
                                                         placeholder="NGUYỄN VĂN A"
-                                                        className="h-12"
+                                                        className={cn("h-12 border-2", showErrors && !legalRepName && "border-red-500 ring-red-500")}
                                                     />
+                                                    {showErrors && !legalRepName && (
+                                                        <p className="text-red-600 text-sm mt-1">Vui lòng nhập họ tên</p>
+                                                    )}
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <Label className="font-bold">Chức vụ *</Label>
-                                                    <Input
-                                                        value={legalRepTitle}
-                                                        onChange={(e) => setLegalRepTitle(e.target.value)}
-                                                        placeholder="Giám đốc"
-                                                        className="h-12"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="font-bold">Ngày sinh *</Label>
-                                                    <Input
-                                                        type="date"
-                                                        value={legalRepDOB}
-                                                        onChange={(e) => setLegalRepDOB(e.target.value)}
-                                                        className="h-12"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="font-bold">Dân tộc</Label>
-                                                    <Input
-                                                        value={legalRepEthnicity}
-                                                        onChange={(e) => setLegalRepEthnicity(e.target.value)}
-                                                        placeholder="Kinh"
-                                                        className="h-12"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="font-bold">Số CCCD/CMND *</Label>
-                                                    <Input
-                                                        value={legalRepIDNumber}
-                                                        onChange={(e) => setLegalRepIDNumber(e.target.value)}
-                                                        placeholder="001234567890"
-                                                        className="h-12"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="font-bold">Ngày cấp *</Label>
-                                                    <Input
-                                                        type="date"
-                                                        value={legalRepIDDate}
-                                                        onChange={(e) => setLegalRepIDDate(e.target.value)}
-                                                        className="h-12"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2 md:col-span-2">
-                                                    <Label className="font-bold">Nơi cấp *</Label>
-                                                    <Input
-                                                        value={legalRepIDPlace}
-                                                        onChange={(e) => setLegalRepIDPlace(e.target.value)}
-                                                        placeholder="Cục Cảnh sát ĐKQL cư trú và DLQG về dân cư"
-                                                        className="h-12"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2 md:col-span-2">
-                                                    <Label className="font-bold">Địa chỉ thường trú *</Label>
-                                                    <Textarea
-                                                        value={legalRepPermanentAddress}
-                                                        onChange={(e) => setLegalRepPermanentAddress(e.target.value)}
-                                                        rows={2}
-                                                        className="resize-none"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2 md:col-span-2">
-                                                    <Label className="font-bold">Địa chỉ liên hệ *</Label>
-                                                    <Textarea
-                                                        value={legalRepContactAddress}
-                                                        onChange={(e) => setLegalRepContactAddress(e.target.value)}
-                                                        rows={2}
-                                                        className="resize-none"
-                                                    />
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div className="space-y-2">
+                                                        <Label className="font-bold">Chức vụ *</Label>
+                                                        <Input
+                                                            value={legalRepTitle}
+                                                            onChange={(e) => setLegalRepTitle(e.target.value)}
+                                                            placeholder="Giám đốc"
+                                                            className={cn("h-12 border-2", showErrors && !legalRepTitle && "border-red-500 ring-red-500")}
+                                                        />
+                                                        {showErrors && !legalRepTitle && (
+                                                            <p className="text-red-600 text-sm mt-1">Vui lòng nhập chức vụ</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="font-bold">Ngày sinh *</Label>
+                                                        <Input
+                                                            type="date"
+                                                            value={legalRepDOB}
+                                                            onChange={(e) => setLegalRepDOB(e.target.value)}
+                                                            className={cn("h-12 border-2", showErrors && !legalRepDOB && "border-red-500 ring-red-500")}
+                                                        />
+                                                        {showErrors && !legalRepDOB && (
+                                                            <p className="text-red-600 text-sm mt-1">Vui lòng chọn ngày sinh</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="font-bold">Dân tộc</Label>
+                                                        <Input value="Kinh" disabled className="h-12 bg-gray-50" />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="font-bold">Quốc tịch</Label>
+                                                        <Input value="Việt Nam" disabled className="h-12 bg-gray-50" />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="font-bold">Số CCCD/CMND *</Label>
+                                                        <Input
+                                                            value={legalRepIDNumber}
+                                                            onChange={(e) => setLegalRepIDNumber(e.target.value)}
+                                                            placeholder="001234567890"
+                                                            className={cn("h-12 border-2", showErrors && (!legalRepIDNumber || !isValidIDNumber(legalRepIDNumber)) && "border-red-500 ring-red-500")}
+                                                        />
+                                                        {showErrors && !legalRepIDNumber && (
+                                                            <p className="text-red-600 text-sm mt-1">Vui lòng nhập số CCCD/CMND</p>
+                                                        )}
+                                                        {showErrors && legalRepIDNumber && !isValidIDNumber(legalRepIDNumber) && (
+                                                            <p className="text-red-600 text-sm mt-1">Số CCCD/CMND phải có 9 hoặc 12 chữ số</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="font-bold">Ngày cấp *</Label>
+                                                        <Input
+                                                            type="date"
+                                                            value={legalRepIDDate}
+                                                            onChange={(e) => setLegalRepIDDate(e.target.value)}
+                                                            className={cn("h-12 border-2", showErrors && !legalRepIDDate && "border-red-500 ring-red-500")}
+                                                        />
+                                                        {showErrors && !legalRepIDDate && (
+                                                            <p className="text-red-600 text-sm mt-1">Vui lòng chọn ngày cấp</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-2 md:col-span-2">
+                                                        <Label className="font-bold">Nơi cấp *</Label>
+                                                        <Input
+                                                            value={legalRepIDPlace}
+                                                            onChange={(e) => setLegalRepIDPlace(e.target.value)}
+                                                            placeholder="Cục Cảnh sát ĐKQL cư trú..."
+                                                            className={cn("h-12 border-2", showErrors && !legalRepIDPlace && "border-red-500 ring-red-500")}
+                                                        />
+                                                        {showErrors && !legalRepIDPlace && (
+                                                            <p className="text-red-600 text-sm mt-1">Vui lòng nhập nơi cấp</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-2 md:col-span-2">
+                                                        <Label className="font-bold">Địa chỉ thường trú *</Label>
+                                                        <Textarea
+                                                            value={legalRepPermanentAddress}
+                                                            onChange={(e) => setLegalRepPermanentAddress(e.target.value)}
+                                                            rows={2}
+                                                            className={cn("resize-none border-2", showErrors && !legalRepPermanentAddress && "border-red-500 ring-red-500")}
+                                                        />
+                                                        {showErrors && !legalRepPermanentAddress && (
+                                                            <p className="text-red-600 text-sm mt-1">Vui lòng nhập địa chỉ thường trú</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-2 md:col-span-2">
+                                                        <Label className="font-bold">Địa chỉ liên hệ *</Label>
+                                                        <Textarea
+                                                            value={legalRepContactAddress}
+                                                            onChange={(e) => setLegalRepContactAddress(e.target.value)}
+                                                            rows={2}
+                                                            className={cn("resize-none border-2", showErrors && !legalRepContactAddress && "border-red-500 ring-red-500")}
+                                                        />
+                                                        {showErrors && !legalRepContactAddress && (
+                                                            <p className="text-red-600 text-sm mt-1">Vui lòng nhập địa chỉ liên hệ</p>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -1186,8 +1314,11 @@ export default function StartPage() {
                                                     <Input
                                                         value={caName}
                                                         onChange={(e) => setCAName(e.target.value.toUpperCase())}
-                                                        className="h-12"
+                                                        className={cn("h-12", showErrors && !isValidText(caName, 3) && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                     />
+                                                    {showErrors && !isValidText(caName, 3) && (
+                                                        <p className="text-red-600 text-sm mt-1">Vui lòng nhập họ tên</p>
+                                                    )}
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label className="font-bold">Ngày sinh *</Label>
@@ -1195,16 +1326,22 @@ export default function StartPage() {
                                                         type="date"
                                                         value={caDOB}
                                                         onChange={(e) => setCADOB(e.target.value)}
-                                                        className="h-12"
+                                                        className={cn("h-12", showErrors && !caDOB && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                     />
+                                                    {showErrors && !caDOB && (
+                                                        <p className="text-red-600 text-sm mt-1">Vui lòng chọn ngày sinh</p>
+                                                    )}
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label className="font-bold">Số CCCD *</Label>
                                                     <Input
                                                         value={caIDNumber}
                                                         onChange={(e) => setCAIDNumber(e.target.value)}
-                                                        className="h-12"
+                                                        className={cn("h-12", showErrors && !isValidIDNumber(caIDNumber) && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                     />
+                                                    {showErrors && !isValidIDNumber(caIDNumber) && (
+                                                        <p className="text-red-600 text-sm mt-1">Số CCCD phải có 9 hoặc 12 chữ số</p>
+                                                    )}
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label className="font-bold">Ngày cấp *</Label>
@@ -1212,16 +1349,22 @@ export default function StartPage() {
                                                         type="date"
                                                         value={caIDDate}
                                                         onChange={(e) => setCAIDDate(e.target.value)}
-                                                        className="h-12"
+                                                        className={cn("h-12", showErrors && !caIDDate && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                     />
+                                                    {showErrors && !caIDDate && (
+                                                        <p className="text-red-600 text-sm mt-1">Vui lòng chọn ngày cấp</p>
+                                                    )}
                                                 </div>
                                                 <div className="space-y-2 md:col-span-2">
                                                     <Label className="font-bold">Nơi cấp *</Label>
                                                     <Input
                                                         value={caIDPlace}
                                                         onChange={(e) => setCAIDPlace(e.target.value)}
-                                                        className="h-12"
+                                                        className={cn("h-12", showErrors && !caIDPlace && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                     />
+                                                    {showErrors && !caIDPlace && (
+                                                        <p className="text-red-600 text-sm mt-1">Vui lòng nhập nơi cấp</p>
+                                                    )}
                                                 </div>
                                                 <div className="space-y-2 md:col-span-2">
                                                     <Label className="font-bold">Địa chỉ *</Label>
@@ -1229,8 +1372,11 @@ export default function StartPage() {
                                                         value={caAddress}
                                                         onChange={(e) => setCAAddress(e.target.value)}
                                                         rows={2}
-                                                        className="resize-none"
+                                                        className={cn("resize-none", showErrors && !isValidText(caAddress, 5) && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                     />
+                                                    {showErrors && !isValidText(caAddress, 5) && (
+                                                        <p className="text-red-600 text-sm mt-1">Địa chỉ quá ngắn</p>
+                                                    )}
                                                 </div>
                                             </div>
                                         )}
@@ -1247,6 +1393,18 @@ export default function StartPage() {
                                                 <p className="text-sm text-muted-foreground -mt-4 mb-2">
                                                     Yêu cầu: {BUSINESS_TYPES.find(t => t.id === businessType)?.minMembers || 1}+ thành viên
                                                 </p>
+                                                {showErrors && founders.length < (BUSINESS_TYPES.find(t => t.id === businessType)?.minMembers || 1) && (
+                                                    <div className="p-3 mb-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-sm">
+                                                        <AlertCircle className="h-4 w-4" />
+                                                        <span>Số lượng thành viên chưa đủ (tối thiểu {BUSINESS_TYPES.find(t => t.id === businessType)?.minMembers || 1})</span>
+                                                    </div>
+                                                )}
+                                                {showErrors && Math.abs(founders.reduce((sum, f) => sum + f.ownershipPercentage, 0) - 100) > 0.01 && (
+                                                    <div className="p-3 mb-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-sm">
+                                                        <AlertCircle className="h-4 w-4" />
+                                                        <span>Tổng tỷ lệ sở hữu phải bằng 100% (Hiện tại: {founders.reduce((sum, f) => sum + f.ownershipPercentage, 0).toFixed(2)}%)</span>
+                                                    </div>
+                                                )}
 
                                                 {founders.length === 0 && (
                                                     <div className="text-center py-6 text-muted-foreground border-2 border-dashed rounded-lg">
@@ -1276,8 +1434,9 @@ export default function StartPage() {
                                                                     value={founder.name}
                                                                     onChange={(e) => updateFounder(founder.id, 'name', e.target.value.toUpperCase())}
                                                                     placeholder="NGUYỄN VĂN A"
+                                                                    className={cn(showErrors && !isValidText(founder.name, 3) && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                                 />
-                                                                {founder.name && !isValidText(founder.name, 3) && (
+                                                                {showErrors && !isValidText(founder.name, 3) && (
                                                                     <p className="text-sm text-red-600 mt-1">Tên phải có ít nhất 3 ký tự</p>
                                                                 )}
                                                             </div>
@@ -1287,8 +1446,9 @@ export default function StartPage() {
                                                                     value={founder.idNumber}
                                                                     onChange={(e) => updateFounder(founder.id, 'idNumber', e.target.value)}
                                                                     placeholder="001234567890"
+                                                                    className={cn(showErrors && !isValidIDNumber(founder.idNumber) && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                                 />
-                                                                {founder.idNumber && !isValidIDNumber(founder.idNumber) && (
+                                                                {showErrors && !isValidIDNumber(founder.idNumber) && (
                                                                     <p className="text-sm text-red-600 mt-1">Số CCCD phải có 9 hoặc 12 chữ số</p>
                                                                 )}
                                                             </div>
@@ -1298,9 +1458,9 @@ export default function StartPage() {
                                                                     value={founder.permanentAddress}
                                                                     onChange={(e) => updateFounder(founder.id, 'permanentAddress', e.target.value)}
                                                                     rows={2}
-                                                                    className="resize-none"
+                                                                    className={cn("resize-none", showErrors && !isValidText(founder.permanentAddress, 5) && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                                 />
-                                                                {founder.permanentAddress && !isValidText(founder.permanentAddress, 5) && (
+                                                                {showErrors && !isValidText(founder.permanentAddress, 5) && (
                                                                     <p className="text-sm text-red-600 mt-1">Địa chỉ quá ngắn (tối thiểu 5 ký tự)</p>
                                                                 )}
                                                             </div>
@@ -1310,9 +1470,9 @@ export default function StartPage() {
                                                                     value={founder.contactAddress}
                                                                     onChange={(e) => updateFounder(founder.id, 'contactAddress', e.target.value)}
                                                                     rows={2}
-                                                                    className="resize-none"
+                                                                    className={cn("resize-none", showErrors && !isValidText(founder.contactAddress, 5) && "border-red-500 ring-red-500 focus:ring-red-500")}
                                                                 />
-                                                                {founder.contactAddress && !isValidText(founder.contactAddress, 5) && (
+                                                                {showErrors && !isValidText(founder.contactAddress, 5) && (
                                                                     <p className="text-sm text-red-600 mt-1">Địa chỉ quá ngắn (tối thiểu 5 ký tự)</p>
                                                                 )}
                                                             </div>
@@ -1381,13 +1541,7 @@ export default function StartPage() {
                                         <ArrowLeft className="mr-2 h-5 w-5" /> Quay lại
                                     </Button>
                                     <Button
-                                        onClick={() => setCurrentStep(6)}
-                                        disabled={
-                                            !charterCapital ||
-                                            !capitalCompletionDate ||
-                                            !legalRepName ||
-                                            ((businessType === 'tnhh2' || businessType === 'co-phan') && !isFoundersValid())
-                                        }
+                                        onClick={handleNext}
                                         className="h-14 px-16 bg-blue-600 text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700"
                                     >
                                         Tiếp tục <ArrowRight className="ml-2 h-5 w-5" />
@@ -1765,9 +1919,9 @@ export default function StartPage() {
 
                     </AnimatePresence>
                 </div>
-            </main>
+            </main >
             <Footer />
             <Toaster richColors closeButton />
-        </div>
+        </div >
     );
 }
