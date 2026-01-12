@@ -120,22 +120,22 @@ const PACKAGE_OPTIONS = [
         name: 'Gói Cơ bản',
         price: 4200000,
         desc: 'Phù hợp khởi đầu tinh gọn',
-        features: ['Giấy phép kinh doanh', 'Con dấu pháp nhân', 'Báo cáo thành lập']
+        features: ['Giấy phép kinh doanh', 'Con dấu pháp nhân', 'Báo cáo thành lập', '500 hóa đơn điện tử', '12 tháng chữ ký số']
     },
     {
         id: 'cao-cap',
         name: 'Gói Cao cấp',
         price: 5000000,
-        desc: 'Đầy đủ thủ tục pháp lý & thuế',
+        desc: 'Đầy đủ thủ tục kinh doanh và pháp lý quý đầu tiên',
         isPopular: true,
-        features: ['Toàn bộ gói Cơ bản', 'Khai thuế môn bài', 'Chữ ký số 12 tháng']
+        features: ['Toàn bộ gói Cơ bản', 'Khai thuế môn bài VAT quý đầu tiên', 'Kế toán quý đầu tiên']
     },
     {
         id: 'kim-cuong',
         name: 'Gói Kim cương',
         price: 6000000,
-        desc: 'Giải pháp kế toán trọn gói 1 năm',
-        features: ['Toàn bộ gói Cao cấp', 'Hóa đơn điện tử', 'Kế toán trọn gói 3 tháng']
+        desc: 'Hoạt động hiệu quả cả năm',
+        features: ['Toàn bộ gói Cao cấp', '12 tháng phần mềm kế toán Misa ASP', '12 tháng phần mềm bảo hiểm xã hội', '12 tháng phần mềm thuế thu nhập cá nhân']
     },
 ];
 
